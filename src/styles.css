@@ -904,12 +904,13 @@ a {
 
 .readouts {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 6px;
   margin-top: 12px;
 }
 
 .readout {
+  min-width: 0;
   padding: 6px 8px;
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -1601,7 +1602,7 @@ a {
     display: none;
   }
   .readouts {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
