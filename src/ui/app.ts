@@ -143,7 +143,7 @@ export class App<S extends LabSim = any> {
   renderAll(): void {
     document.documentElement.lang = getLang();
     if (this.store.state.mode === 'plans') this.showDrawing(true);
-    document.title = this.def.brand.title;
+    document.title = tr(this.def.brand.title);
     this.renderHeader();
     this.renderRail();
     this.renderPanel();
@@ -164,7 +164,7 @@ export class App<S extends LabSim = any> {
         'div',
         { class: 'brand' },
         h('img', { src: this.def.brand.icon, alt: '', width: 34, height: 34 }),
-        h('div', {}, h('h1', {}, this.def.brand.title), h('p', {}, tr(this.def.brand.tagline))),
+        h('div', {}, h('h1', {}, tr(this.def.brand.title)), h('p', {}, tr(this.def.brand.tagline))),
       ),
       h(
         'div',
