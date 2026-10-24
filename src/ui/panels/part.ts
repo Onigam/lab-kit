@@ -176,7 +176,8 @@ function renderOverview(ctx: AppContext, root: HTMLElement): void {
   fill(
     root,
     overview ? h('h2', { class: 'panel-title' }, tr(overview.title)) : null,
-    overview ? h('p', { class: 'lead' }, rich(tr(overview.text))) : null,
+    // a blank line in the text starts a new paragraph
+    ...(overview ? tr(overview.text).split(/\n\s*\n/) : []).map((para) => h('p', { class: 'lead' }, rich(para))),
     overview?.actions?.length
       ? h(
           'div',

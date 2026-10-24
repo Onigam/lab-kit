@@ -28,6 +28,7 @@ export interface SceneDef {
   label: L;
   module: SceneModule;
   /** Text and shortcuts of the side panel while nothing is selected in this world. */
+  /** `text` may hold several paragraphs separated by a blank line. */
   overview?: { title: L; text: L; actions?: { label: L; scene: string; primary?: boolean }[] };
   /** Show the section tool in this world (default: yes). */
   cutaway?: boolean;
