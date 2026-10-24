@@ -45,5 +45,7 @@ export interface SceneModule<S = unknown> {
   /** Camera distance limits for the orbit controls. */
   minDistance: number;
   maxDistance: number;
+  /** Overview framing of a device world: how tight the camera is around its parts (default 0.82; a tall, narrow device needs more, about 1.3). */
+  homePadding?: number;
   update(state: S, dt: number, view: ViewOpts): void;
 }

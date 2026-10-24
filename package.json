@@ -1,6 +1,6 @@
 {
   "name": "@onigam/lab-kit",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "Shared shell of the interactive 3D energy labs: 3D stage, application frame, panels, SVG drawings, FR/EN strings and small physics helpers",
   "license": "MIT",
   "type": "module",

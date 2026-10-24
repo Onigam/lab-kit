@@ -240,7 +240,7 @@ export class Stage {
     }
     const dir = mod.home.position.clone().sub(mod.home.target);
     // the bounding sphere over-estimates a long, low machine: tighten a little
-    this.frameBox(box, 0.82, duration, dir);
+    this.frameBox(box, mod.homePadding ?? 0.82, duration, dir);
   }
 
   frameParts(ids: string[], padding = 1.35, dir?: THREE.Vector3): void {
