@@ -1,0 +1,28 @@
+import type { PartInfo } from '../content';
+import type { Stage } from '../three';
+import type { LabDefinition, LabSim, SceneDef } from './lab';
+import type { Mode, Store } from './state';
+export declare class AppContext<S extends LabSim = any> {
+    readonly def: LabDefinition<S>;
+    readonly stage: Stage;
+    readonly store: Store;
+    private byId;
+    constructor(def: LabDefinition<S>, stage: Stage, store: Store);
+    get ui(): import("./state").UiState;
+    get sim(): S;
+    partInfo(id: string): PartInfo | undefined;
+    sceneDef(id: string): SceneDef | undefined;
+    /** Link to the lab's source video at a "mm:ss" timestamp. */
+    videoUrl(ts: string): string;
+    private get doneKey();
+    lessonsDone(): Set<string>;
+    markLessonDone(id: string): void;
+    /** Switch to another 3D world (keeps the current mode when it makes sense). */
+    gotoScene(scene: string): void;
+    setMode(mode: Mode): void;
+    /** Select a part, switching world if needed, and frame it. */
+    selectPart(id: string | null, opts?: {
+        frame?: boolean;
+        mode?: Mode;
+    }): void;
+}
