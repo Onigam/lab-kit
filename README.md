@@ -83,7 +83,7 @@ lab ait le même aspect et le même comportement.
   d'outils, bandeau du bas), les widgets, les graphiques et la visionneuse de plans.
 - **`three`** : `Stage` (un seul rendu pour tous les mondes 3D), `PartRegistry` (éclaté, isoler, transparence), matériaux.
 - **`drawings`** : kit de dessin SVG A3 (vues, cotes, hachures, cartouche) et type `DrawingSheet`.
-- **`i18n`** : langue FR/EN, `l(fr, en)`, registre des textes d'interface.
+- **`i18n`** : langue FR/EN, `l(fr, en)`, registre des textes d'interface. La typographie française (espaces insécables avant « : » et « » », fine avant « ; ! ? », nombres et unités) est appliquée à la résolution des textes, sans toucher aux chaînes sources.
 - **`content`** : types du contenu qu'écrit un lab (pièces, étapes de guide, leçons). Un guide se joue dans un monde par défaut ; une étape peut en nommer un autre (`GuideStep.scene`) et
   l'application suit l'étape dans ce monde.
 - **`sim/*`** : petites fonctions de physique (hydraulique, électrique).

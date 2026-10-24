@@ -1,4 +1,5 @@
 import { getLang, type L } from './lang';
+import { enTypo, frTypo } from './typo';
 
 // Interface strings shared by every lab (modes, toolbar, panels, guides). A lab adds its own
 // with `registerStrings` and resolves any key with `tx`.
@@ -132,7 +133,7 @@ export function tx(key: string): string {
     }
     return key;
   }
-  return entry[getLang() === 'fr' ? 0 : 1];
+  return getLang() === 'fr' ? frTypo(entry[0]) : enTypo(entry[1]);
 }
 
 /** Resolve a key shared by every lab. */
@@ -142,7 +143,7 @@ export function t(key: CommonKey): string {
 
 /** Label/value separator with the right typography (French puts a space before ':'). */
 export function colon(): string {
-  return getLang() === 'fr' ? ' : ' : ': ';
+  return getLang() === 'fr' ? '\u00a0: ' : ': ';
 }
 
 /** Both languages of a registered key, for definitions that store bilingual `{ fr, en }` values. */

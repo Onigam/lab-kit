@@ -1,3 +1,5 @@
+import { enTypo, frTypo } from './typo';
+
 // Tiny i18n layer: every user-facing text is either a UI key (see ui.ts) or an inline
 // bilingual object `{ fr, en }` stored next to the data it describes.
 
@@ -53,7 +55,8 @@ export function onLangChange(fn: (lang: Lang) => void): () => void {
 /** Resolve a bilingual value (or pass a plain string through). */
 export function tr(value: L | string | undefined): string {
   if (value === undefined) return '';
-  return typeof value === 'string' ? value : value[current];
+  if (typeof value === 'string') return value;
+  return current === 'fr' ? frTypo(value.fr) : enTypo(value.en);
 }
 
 /** Shorthand to build a bilingual value. */
