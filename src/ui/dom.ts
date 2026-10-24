@@ -51,6 +51,11 @@ export function rich(text: string): DocumentFragment {
   return frag;
 }
 
+/** Render a text that may hold several paragraphs (a blank line starts a new one), each with **bold** markers. */
+export function paragraphs(text: string, cls?: string): HTMLParagraphElement[] {
+  return text.split(/\n\s*\n/).map((para) => h('p', cls ? { class: cls } : {}, rich(para)));
+}
+
 /** Replace the children of `el`, skipping null/false entries. */
 export function fill(el: Element, ...children: Child[]): void {
   el.replaceChildren();

@@ -3,7 +3,7 @@ import type { PartInfo } from '../../content/types';
 import { sheetsForPart } from '../../drawings/types';
 import { t, tr, type CommonKey } from '../../i18n';
 import type { AppContext } from '../context';
-import { fill, h, icon, ICONS, rich } from '../dom';
+import { fill, h, icon, ICONS, paragraphs, rich } from '../dom';
 
 // Explore mode: part sheet (Learn-Arduino-like tabs) or scene overview when nothing is selected.
 
@@ -43,7 +43,7 @@ function tabBody(ctx: AppContext, info: PartInfo): HTMLElement {
       return h(
         'div',
         { class: 'tab-body' },
-        h('p', {}, rich(tr(info.description))),
+        ...paragraphs(tr(info.description)),
         info.tip
           ? h('div', { class: 'callout callout--tip' }, h('b', {}, t('tip')), h('span', {}, rich(tr(info.tip))))
           : null,
@@ -61,7 +61,11 @@ function tabBody(ctx: AppContext, info: PartInfo): HTMLElement {
       );
     }
     case 'maintenance':
-      return h('div', { class: 'tab-body' }, h('p', {}, info.maintenance ? rich(tr(info.maintenance)) : '—'));
+      return h(
+        'div',
+        { class: 'tab-body' },
+        ...(info.maintenance ? paragraphs(tr(info.maintenance)) : [h('p', {}, '—')]),
+      );
     case 'design':
       return h(
         'div',
@@ -177,7 +181,7 @@ function renderOverview(ctx: AppContext, root: HTMLElement): void {
     root,
     overview ? h('h2', { class: 'panel-title' }, tr(overview.title)) : null,
     // a blank line in the text starts a new paragraph
-    ...(overview ? tr(overview.text).split(/\n\s*\n/) : []).map((para) => h('p', { class: 'lead' }, rich(para))),
+    ...(overview ? paragraphs(tr(overview.text), 'lead') : []),
     overview?.actions?.length
       ? h(
           'div',

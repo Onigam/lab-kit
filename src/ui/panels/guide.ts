@@ -1,7 +1,7 @@
 import { t, tr } from '../../i18n';
 import type { AppContext } from '../context';
 import { guideDef, guideFor, guideScenes, stepScene } from '../display';
-import { fill, h, icon, ICONS, rich } from '../dom';
+import { fill, h, icon, ICONS, paragraphs, rich } from '../dom';
 
 // Step-by-step guide (sael.net style): counters, step card, transport and timeline.
 
@@ -40,7 +40,7 @@ export function renderGuidePanel(ctx: AppContext, root: HTMLElement): void {
     'div',
     { class: 'step-card' },
     h('div', { class: 'eyebrow' }, `${t('step')} ${i + 1}${world ? ` · ${tr(world)}` : ''} · ${tr(step.title)}`),
-    h('p', {}, rich(tr(step.text))),
+    ...paragraphs(tr(step.text)),
     parts.length
       ? h(
           'div',
