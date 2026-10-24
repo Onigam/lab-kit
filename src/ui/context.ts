@@ -1,6 +1,7 @@
 import type { PartInfo } from '../content';
 import type { Stage } from '../three';
 import type { LabDefinition, LabSim, SceneDef } from './lab';
+import { guideDef, guideScenes, stepScene } from './display';
 import type { Mode, Store } from './state';
 
 // Glue shared by every panel: navigation between worlds/modes and part selection.
@@ -69,20 +70,16 @@ export class AppContext<S extends LabSim = any> {
   /** Switch to another 3D world (keeps the current mode when it makes sense). */
   gotoScene(scene: string): void {
     if (scene === this.ui.scene) return;
-    const { assembly, install } = this.def.guides ?? {};
-    const mode: Mode =
-      (this.ui.mode === 'assembly' && scene !== assembly?.scene) ||
-      (this.ui.mode === 'install' && scene !== install?.scene)
-        ? 'explore'
-        : this.ui.mode;
+    const guide = guideDef(this.def, this.ui.mode);
+    const mode: Mode = guide && !guideScenes(guide).has(scene) ? 'explore' : this.ui.mode;
     this.store.set({ scene, mode, selected: null, isolate: false, explode: 0 });
   }
 
   setMode(mode: Mode): void {
     const patch: Partial<typeof this.ui> = { mode, playing: false };
-    const guide =
-      mode === 'assembly' ? this.def.guides?.assembly : mode === 'install' ? this.def.guides?.install : null;
-    if (guide) Object.assign(patch, { scene: guide.scene, step: 0, explode: 0, isolate: false, selected: null });
+    const guide = guideDef(this.def, mode);
+    if (guide)
+      Object.assign(patch, { scene: stepScene(guide, 0), step: 0, explode: 0, isolate: false, selected: null });
     this.store.set(patch);
   }
 

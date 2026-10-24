@@ -37,6 +37,8 @@ export interface GuideStep {
   id: string;
   title: L;
   text: L;
+  /** World the step plays in; defaults to the guide's `scene`. A guide may move through several worlds. */
+  scene?: SceneId;
   /** Part ids that get installed during this step (animated into place). */
   parts: string[];
   tools?: L[];

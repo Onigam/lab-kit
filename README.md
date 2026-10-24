@@ -47,6 +47,8 @@ mountLab(myLab, {
 `set`, `onChange`), 3D worlds (`SceneDef[]`), parts, optional guides, lessons and drawings, the bottom-strip values, the
 "Sources" content and a few hooks (`partActions`, `onFrame`, `onCutaway`). Modes without content are hidden
 automatically. See `src/ui/lab.ts` for the full contract.
+A guide plays in one world by default; a step may name another with `GuideStep.scene`, and the app follows the step
+into that world (the Pelton-style build of a device in one world, then its fitting in another).
 
 The kit targets bundlers (Vite): the emitted modules use extensionless relative imports.
 
@@ -82,7 +84,8 @@ lab ait le même aspect et le même comportement.
 - **`three`** : `Stage` (un seul rendu pour tous les mondes 3D), `PartRegistry` (éclaté, isoler, transparence), matériaux.
 - **`drawings`** : kit de dessin SVG A3 (vues, cotes, hachures, cartouche) et type `DrawingSheet`.
 - **`i18n`** : langue FR/EN, `l(fr, en)`, registre des textes d'interface.
-- **`content`** : types du contenu qu'écrit un lab (pièces, étapes de guide, leçons).
+- **`content`** : types du contenu qu'écrit un lab (pièces, étapes de guide, leçons). Un guide se joue dans un monde par défaut ; une étape peut en nommer un autre (`GuideStep.scene`) et
+  l'application suit l'étape dans ce monde.
 - **`sim/*`** : petites fonctions de physique (hydraulique, électrique).
 - **`styles.css`** : le cadre graphique, identique pour tous les labs, que l'on ne restyle pas.
 

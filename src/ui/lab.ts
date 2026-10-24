@@ -45,7 +45,7 @@ export interface SceneDef {
 }
 
 export interface GuideDef {
-  /** World the guide plays in. */
+  /** World the guide plays in (the default of its steps, which may name another one with `step.scene`). */
   scene: string;
   steps: GuideStep[];
 }

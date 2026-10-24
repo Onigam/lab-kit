@@ -3,7 +3,7 @@ import type { GuideStep } from '../content/types';
 import type { Stage } from '../three/core';
 import type { PartDisplay } from '../three/registry';
 import { damp, ease } from '../three/util';
-import type { AnyLab } from './lab';
+import type { AnyLab, GuideDef } from './lab';
 import type { Store } from './state';
 
 // Decides, every frame, how each part of the active scene is shown: solid, ghost,
@@ -12,10 +12,25 @@ import type { Store } from './state';
 const STEP_ANIM = 1.4;
 const AUTOPLAY = 6;
 
-/** Steps of the guide playing in this mode and world, if any. */
+/** The guide of the assembly or installation mode, if the lab has one. */
+export function guideDef(def: AnyLab, mode: string): GuideDef | undefined {
+  return mode === 'assembly' ? def.guides?.assembly : mode === 'install' ? def.guides?.install : undefined;
+}
+
+/** World a step plays in (a guide may cross several worlds). */
+export function stepScene(g: GuideDef, i: number): string {
+  return g.steps[i]?.scene ?? g.scene;
+}
+
+/** Every world the guide plays in. */
+export function guideScenes(g: GuideDef): Set<string> {
+  return new Set(g.steps.length ? g.steps.map((_, i) => stepScene(g, i)) : [g.scene]);
+}
+
+/** Steps of the guide playing in this mode when `scene` is one of its worlds, if any. */
 export function guideFor(def: AnyLab, mode: string, scene: string): GuideStep[] | null {
-  const g = mode === 'assembly' ? def.guides?.assembly : mode === 'install' ? def.guides?.install : undefined;
-  return g && g.scene === scene ? g.steps : null;
+  const g = guideDef(def, mode);
+  return g && guideScenes(g).has(scene) ? g.steps : null;
 }
 
 export class DisplayController {

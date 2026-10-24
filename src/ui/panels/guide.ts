@@ -1,6 +1,6 @@
 import { t, tr } from '../../i18n';
 import type { AppContext } from '../context';
-import { guideFor } from '../display';
+import { guideDef, guideFor, guideScenes, stepScene } from '../display';
 import { fill, h, icon, ICONS, rich } from '../dom';
 
 // Step-by-step guide (sael.net style): counters, step card, transport and timeline.
@@ -33,10 +33,13 @@ export function renderGuidePanel(ctx: AppContext, root: HTMLElement): void {
   );
 
   const parts = step.parts;
+  // a guide that crosses several worlds names the world of the step
+  const def = guideDef(ctx.def, ui.mode);
+  const world = def && guideScenes(def).size > 1 ? ctx.sceneDef(stepScene(def, i))?.label : undefined;
   const card = h(
     'div',
     { class: 'step-card' },
-    h('div', { class: 'eyebrow' }, `${t('step')} ${i + 1} · ${tr(step.title)}`),
+    h('div', { class: 'eyebrow' }, `${t('step')} ${i + 1}${world ? ` · ${tr(world)}` : ''} · ${tr(step.title)}`),
     h('p', {}, rich(tr(step.text))),
     parts.length
       ? h(

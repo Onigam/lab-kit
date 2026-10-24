@@ -1,7 +1,7 @@
 import { getLang, onLangChange, setLang, t, tr, colon, type CommonKey } from '../i18n';
 import type { Stage } from '../three';
 import { AppContext } from './context';
-import type { DisplayController } from './display';
+import { guideDef, stepScene, type DisplayController } from './display';
 import { fill, h, icon, ICONS, rich } from './dom';
 import type { LabDefinition, LabSim, PanelController } from './lab';
 import { panelEdge } from './panel-size';
@@ -95,6 +95,15 @@ export class App<S extends LabSim = any> {
 
   private onState(s: UiState, prev: UiState): void {
     const stage = this.ctx.stage;
+    // a guide may move through several worlds: follow the step (the nested update renders everything)
+    if ((s.step !== prev.step || s.mode !== prev.mode) && (s.mode === 'assembly' || s.mode === 'install')) {
+      const g = guideDef(this.def, s.mode);
+      const want = g && stepScene(g, Math.min(s.step, Math.max(0, g.steps.length - 1)));
+      if (want && want !== s.scene) {
+        this.store.set({ scene: want, selected: null, isolate: false, explode: 0 });
+        return;
+      }
+    }
     if (s.scene !== prev.scene) {
       stage.setActive(s.scene);
       if (!this.visited.has(s.scene)) {
