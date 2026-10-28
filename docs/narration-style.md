@@ -38,10 +38,14 @@ as a real actor's; non-commercial use; the "Voix de synthèse" mention stays vis
 - Spoken text only (it is also the subtitle text): numbers and units in words, estimates marked « environ » or
   « dans le modèle », no symbol, no abbreviation, acronyms and codes replaced by words, « … » for a pause, no markdown.
 - **Anonymous**: no person, channel, company, brand or institution in the text or the titles (credits live in the Sources
-  panel). Say « la vidéo », « les manuels ». A historical inventor may be named once as history, with no year.
-- **Honest**: what the sheets flag as estimate, assumption or model result is never stated as a reported fact; a video
-  claim is attributed to « la vidéo » only where the sheet says so; the introduction says the lab is an educational
-  reconstruction, not an official plan or a maker's product. Safety and law: one short sentence where it matters.
+  panel). Say « la vidéo », « les manuels ». No name at all, not even a historical inventor (the owner had Montgolfier removed from the ram script): say "le principe date de la fin du dix-huitième siècle", with no year.
+- **Honest, and said once.** What the sheets flag as estimate, assumption or model result is never stated as a reported fact, and a
+  video claim is attributed to « la vidéo » only where the sheet says so. The disclaimers are **said once**: the introduction says the
+  lab is an educational reconstruction (no official plan, no maker's product), that the device is generic if it is, and that the
+  figures come from the simulation except when « la vidéo » is quoted; the drinkability warning comes once, where the water is drunk.
+  Never repeat them in the worlds or the parts, and do not hang « dans le modèle » on every figure: the owner found it tiresome
+  (« y'en a trop », 2026-10-28). Keep the hedge only where a figure contrasts with the video's. Safety and law: one short sentence
+  where the action is risky, once per hazard.
 - **English is an adaptation, not a translation**: same segment ids, same cues at the matching point of the sentence,
   British spelling and units, France-only formulas made general.
 
