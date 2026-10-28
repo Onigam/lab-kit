@@ -1,6 +1,6 @@
 import type { GuideStep, Lesson, PartInfo } from '../content';
 import type { DrawingSheet } from '../drawings';
-import type { L } from '../i18n';
+import type { L, Lang } from '../i18n';
 import type { SceneModule, ViewOpts } from '../three';
 import type { AppContext } from './context';
 import type { Mode } from './state';
@@ -130,6 +130,23 @@ export interface LabDefinition<S extends LabSim = LabSim> {
   onFrame?(frame: FrameInfo<S>): void;
   /** Called when the section tool changes or the world changes. */
   onCutaway?(on: boolean, sceneId: string): void;
+  /** The spoken guide with subtitles that moves the 3D view (see `Narration`). */
+  narration?: Narration<S>;
+}
+
+/**
+ * The spoken guide of a lab (docs/narration.md): audio pre-rendered by `tools/narration/generate.mjs`, with subtitles and cues
+ * that drive the 3D view. Without it, nothing of the feature shows.
+ */
+export interface Narration<S extends LabSim = any> {
+  /**
+   * URL of the `manifest.json` of the interface language, relative to the page: a string (`{lang}` stands for `fr` or `en`:
+   * `'audio/{lang}/manifest.json'`), or a function of the language that gives the URL, or `null` for a language without
+   * narration. A language whose manifest is missing (or is in another language) shows no narration at all.
+   */
+  manifest: string | ((lang: Lang) => string | null);
+  /** Runs a `[[lab:<name>:<arg>]]` cue of the script: a preset, a scenario, the time of day… */
+  onCue?(ctx: AppContext<S>, lab: string, arg?: string): void;
 }
 
 /** A lab definition whatever its simulation type (what the shell accepts). */

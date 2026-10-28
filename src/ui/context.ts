@@ -2,14 +2,39 @@ import type { PartInfo } from '../content';
 import type { Stage } from '../three';
 import type { LabDefinition, LabSim, SceneDef } from './lab';
 import { guideDef, guideScenes, stepScene } from './display';
+import { NarrationEngine } from './narration';
 import type { Mode, Store, UiState } from './state';
 
 // Glue shared by every panel: navigation between worlds/modes and part selection.
+
+/** The lab has content for this mode (a mode without content is hidden, never reinvented). */
+export function hasMode(def: LabDefinition<any>, mode: string): boolean {
+  switch (mode) {
+    case 'explore':
+    case 'parts':
+    case 'about':
+      return true;
+    case 'assembly':
+      return !!def.guides?.assembly;
+    case 'install':
+      return !!def.guides?.install;
+    case 'sim':
+      return !!def.simPanel;
+    case 'plans':
+      return !!def.plans?.sheets.length;
+    case 'lessons':
+      return !!def.lessons?.items.length;
+    default:
+      return false;
+  }
+}
 
 // `any` by default so the shell panels accept the context of any lab; a lab types its own panels
 // with `AppContext<MySim>`.
 export class AppContext<S extends LabSim = any> {
   private byId: Map<string, PartInfo>;
+  /** The spoken guide, when the lab has one (`LabDefinition.narration`). */
+  readonly narration: NarrationEngine | null;
 
   constructor(
     readonly def: LabDefinition<S>,
@@ -17,6 +42,7 @@ export class AppContext<S extends LabSim = any> {
     readonly store: Store,
   ) {
     this.byId = new Map(def.parts.map((p) => [p.id, p]));
+    this.narration = def.narration ? new NarrationEngine(this, def.narration) : null;
   }
 
   get ui() {

@@ -47,7 +47,20 @@ what the narrator says (camera, selection, explode, section, flows, simulation).
 | `[[lab:<name>[:<arg>]]]`              | a hook of the lab (`LabDefinition.narration.onCue`), e.g. `preset:valve-1`, `scenario:source-drop`, `time:600` |
 
 A **part** segment starts by framing and selecting its part automatically: add markers only for what happens _during_ the
-narration. Every id must exist in the lab (a lab test checks the manifest against its parts and worlds).
+narration. Every id must exist in the lab (a lab test checks the manifest against its parts and worlds, see §4).
+
+How the app reads the markers (the same code paths as the buttons of the interface):
+
+- `select:<id>` is a click on the part (its sheet opens, the camera frames it, a part of another world switches world);
+  `frame:<ids>` flies to the parts and outlines them until the next `frame`, `home`, `select` or world change; `home` is the
+  « Vue d'ensemble » button; `scene:<id>` frames the overview of the world. When several cues fall together, the last
+  camera movement wins.
+- `isolate:on` needs a selected part; `cutaway:on` is ignored in a world without a section; an unknown id, mode or world is
+  ignored (one warning in the console), never an error.
+- `lab:<name>[:<arg>]` calls `narration.onCue(ctx, name, arg)`. After a seek, the last cue **of each name** is replayed.
+- The narration starts from a clean state for what its cues touch: an introduction, a world or a lesson starts with no
+  selection, not isolated and on the overview of its world; a cue kind used by the segment (`explode`, `xray`, `cutaway`,
+  `flows`, `isolate`, `mode`) starts at its default, so a seek backwards undoes what a later cue did.
 
 ## 2. Generation (`tools/narration/generate.mjs`)
 
@@ -91,14 +104,56 @@ Output: `<out>/<id>.mp3` (mono, 64 kbit/s) and `<out>/manifest.json`:
 
 ## 3. In the app (kit)
 
-`LabDefinition.narration?: { manifest: string; onCue?(ctx, lab: string, arg?: string): void }` (`manifest` is the URL of the
-manifest.json of the current language, relative to the page). When present and the interface language has a manifest:
+```ts
+LabDefinition.narration?: {
+  manifest: string | ((lang: 'fr' | 'en') => string | null);
+  onCue?(ctx: AppContext, lab: string, arg?: string): void;
+}
+```
 
-- a speaker button in the header plays the `intro` segment; each world overview has a « Écouter » button (its `scene:` segment) and
-  each part sheet has one (its `part:` segment);
-- a **transport bar** (play/pause, progress, seek, speed 1× / 1.25×, subtitles on/off, « guidage 3D » on/off, and the mention of the
-  synthetic voice) and **subtitles** at the bottom of the 3D view, discreet and legible, on by default;
-- cues run on the audio clock (seeking replays the state: the last cue of each kind before the new position is applied);
-- the visitor moving the camera or clicking a part by hand pauses the guidance (the audio keeps playing) and shows « Reprendre le
-  guidage »; leaving the lab language for one without a manifest hides the buttons; `prefers-reduced-motion` shortens the flights;
-- nothing plays by itself; the audio files are fetched on demand; a missing file shows a short message, never an error.
+`manifest` is the URL of the `manifest.json` of the interface language, relative to the page: a string (`{lang}` stands for
+`fr` or `en`: `'audio/{lang}/manifest.json'`) or a function of the language (`null`: no narration in that language). The audio
+files are relative to the manifest. The manifest is asked for once the application is up (and again when the language changes,
+once per language); a language without a manifest (404, not JSON, no usable segment, or a `lang` that is not the interface
+language) shows nothing of the feature, silently. The audio files are fetched on demand, nothing plays by itself.
+
+- a speaker button in the header, next to the language switch, plays the `intro` segment (a « ● » on it while the narrator
+  speaks); each world overview has a « Écouter · 0:42 » button (its `scene:` segment) and each part sheet and lesson has one
+  (`part:`, `lesson:`), only when the segment exists; the button becomes « Pause » while it speaks and « Réécouter » at the end;
+- a **transport bar** over the 3D view (above the toolbar; on a phone above the toolbar that rides on the bottom sheet, the
+  sheet folds when a narration starts): play/pause, a seekable position with elapsed and total time, speed 1× / 1.25× / 1.5×,
+  subtitles on/off, « Guidage 3D » on/off, close, the title of the segment and the mention of the synthetic voice
+  (`voiceLabel`), always. The 3D view is framed in what the bar leaves free. Space (focus in the bar) plays and pauses, Esc closes;
+- **subtitles** centred at the bottom of the 3D view, two lines at most (a long caption is cut where the voice pauses and
+  follows the voice), on by default, remembered in this browser with the speed and the guidance switch
+  (`<lab id>:narration` in `localStorage`); `aria-live="polite"`;
+- cues run on the audio clock; **seeking replays the state** (the last cue of each kind up to the new position, from the start
+  state of the segment); playing another segment stops the current one;
+- **guidance**: when the visitor takes the camera (drag, pinch, wheel), the world, the mode or the selected part by hand, the
+  cues stop being applied (the audio goes on) and « Reprendre le guidage » replays the state at the current position and goes
+  on. A **part** segment ends instead (the audio stops, the 3D view stays as the visitor left it) when the visitor selects
+  another part, closes the sheet or changes world or mode;
+- at the end of a segment the audio stops, the 3D view keeps its last state and the bar offers « Réécouter »;
+- `prefers-reduced-motion` shortens the camera flights; a missing or undecodable file, or a browser that refuses to start the
+  audio, shows a short message in the bar, never an error.
+
+## 4. In a lab's tests
+
+`@onigam/lab-kit/narration` is the part of the feature without DOM (manifest reading, cue scheduling, replay, captions): a lab
+test reads its manifests and checks them against its content:
+
+```ts
+import { readManifest, validateManifest } from '@onigam/lab-kit/narration';
+
+const { manifest, problems } = readManifest(JSON.parse(fs.readFileSync('public/audio/fr/manifest.json', 'utf8')));
+expect(problems).toEqual([]);
+expect(
+  validateManifest(manifest!, {
+    scenes: lab.scenes.map((s) => s.id),
+    parts: lab.parts.map((p) => p.id),
+    lessons: lab.lessons?.items.map((l) => l.id),
+  }),
+).toEqual([]); // every scope, world, part and mode named by a segment or a cue exists
+```
+
+`node tools/narration/selftest.mjs` checks the scheduling and replay logic of the kit itself.

@@ -139,6 +139,11 @@ export class Stage {
   private pointer = new THREE.Vector2();
   private downAt = new THREE.Vector2();
   private hovered: string | null = null;
+  /** Parts outlined like the selection without being selected (the narration points at them), see `setEmphasis`. */
+  private emphasis: string[] = [];
+  private cameraListeners = new Set<() => void>();
+  /** Presses that started on the canvas and have not moved far enough to be a drag yet. */
+  private gestures = new Map<number, { x: number; y: number }>();
   active!: SceneModule;
   /** Label visibility: 'main' hides minor labels, 'all' shows them, 'none' hides every label. */
   labelMode: 'main' | 'all' | 'none' = 'main';
@@ -191,7 +196,10 @@ export class Stage {
     this.composer.addPass(new OutputPass());
 
     const el = this.renderer.domElement;
-    el.addEventListener('pointerdown', (e) => this.downAt.set(e.clientX, e.clientY));
+    el.addEventListener('pointerdown', (e) => {
+      this.downAt.set(e.clientX, e.clientY);
+      this.gestures.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    });
     el.addEventListener('pointerup', (e) => {
       if (this.downAt.distanceTo(new THREE.Vector2(e.clientX, e.clientY)) > 5) return;
       this.events.onPick(this.pick(e));
@@ -210,9 +218,20 @@ export class Stage {
     // the wheel and the pinch zoom towards the pointer; a drag that starts on a part turns the camera around that point
     this.controls.zoomToCursor = true;
     host.addEventListener('pointerdown', (e) => this.beginGrab(e), true);
-    window.addEventListener('pointermove', (e) => this.moveGrab(e));
-    window.addEventListener('pointerup', (e) => this.releaseGrab(e));
-    window.addEventListener('pointercancel', (e) => this.releaseGrab(e));
+    window.addEventListener('pointermove', (e) => {
+      this.moveGrab(e);
+      this.moveGesture(e);
+    });
+    window.addEventListener('pointerup', (e) => {
+      this.releaseGrab(e);
+      this.gestures.delete(e.pointerId);
+    });
+    window.addEventListener('pointercancel', (e) => {
+      this.releaseGrab(e);
+      this.gestures.delete(e.pointerId);
+    });
+    // the wheel and the pinch of the visitor
+    el.addEventListener('wheel', () => this.cameraTaken(), { passive: true });
     // the visitor takes the camera: the last framing is no longer replayed on resize
     this.controls.addEventListener('start', () => {
       this.fly = null;
@@ -301,8 +320,29 @@ export class Stage {
     this.fly = null;
     this.selected = null;
     this.hovered = null;
+    this.emphasis = [];
     this.refreshOutline();
     this.refreshLabels();
+  }
+
+  /**
+   * Tell `fn` whenever the visitor takes the camera by hand: a drag that moves (turn, pan, pinch), the wheel. A click that does
+   * not move is not one. The camera flights the application starts itself never call it. Returns the function that stops it.
+   */
+  onUserCamera(fn: () => void): () => void {
+    this.cameraListeners.add(fn);
+    return () => this.cameraListeners.delete(fn);
+  }
+
+  private cameraTaken(): void {
+    for (const fn of [...this.cameraListeners]) fn();
+  }
+
+  private moveGesture(e: PointerEvent): void {
+    const g = this.gestures.get(e.pointerId);
+    if (!g || Math.hypot(e.clientX - g.x, e.clientY - g.y) <= CLICK_SLOP) return;
+    this.gestures.delete(e.pointerId); // told once per press
+    this.cameraTaken();
   }
 
   /** Smoothly move the camera to an authored pose. */
@@ -527,10 +567,10 @@ export class Stage {
     this.fitBox(box, mod.homePadding ?? 0.82, duration, dir, 0.03, true);
   }
 
-  frameParts(ids: string[], padding = 1.35, dir?: THREE.Vector3): void {
+  frameParts(ids: string[], padding = 1.35, dir?: THREE.Vector3, duration = 0.9): void {
     const box = new THREE.Box3();
     for (const id of ids) box.union(this.active.registry.bounds(id));
-    this.frameBox(box, padding, 0.9, dir);
+    this.frameBox(box, padding, duration, dir);
   }
 
   home(): void {
@@ -627,6 +667,13 @@ export class Stage {
     this.outline.selectedObjects = objs;
   }
 
+  /** Outline these parts like the selection (the spoken guide points at them); `[]` clears. A change of world clears it too. */
+  setEmphasis(ids: string[]): void {
+    if (ids.length === this.emphasis.length && ids.every((id, i) => id === this.emphasis[i])) return;
+    this.emphasis = [...ids];
+    this.refreshOutline();
+  }
+
   refreshOutline(): void {
     const reg = this.active?.registry;
     if (!reg) return;
@@ -634,7 +681,9 @@ export class Stage {
       const p = id ? reg.get(id) : undefined;
       return p && p.display !== 'hidden' ? p.meshes : [];
     };
-    this.outline.selectedObjects = meshesOf(this.selected);
+    this.outline.selectedObjects = this.emphasis.length
+      ? [...new Set([...meshesOf(this.selected), ...this.emphasis.flatMap(meshesOf)])]
+      : meshesOf(this.selected);
     this.outlineHover.selectedObjects = this.hovered !== this.selected ? meshesOf(this.hovered) : [];
   }
 

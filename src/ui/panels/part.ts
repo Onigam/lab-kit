@@ -4,6 +4,7 @@ import { sheetsForPart } from '../../drawings/types';
 import { t, tr, type CommonKey } from '../../i18n';
 import type { AppContext } from '../context';
 import { fill, h, icon, ICONS, paragraphs, rich } from '../dom';
+import { listenRow } from '../narration-ui';
 
 // Explore mode: part sheet (Learn-Arduino-like tabs) or scene overview when nothing is selected.
 
@@ -108,6 +109,7 @@ export function renderPartPanel(ctx: AppContext, root: HTMLElement): void {
     ),
     h('h2', { class: 'panel-title' }, tr(info.name)),
     h('p', { class: 'lead' }, rich(tr(info.short))),
+    listenRow(ctx, `part:${id}`),
     h(
       'div',
       { class: 'tabs', role: 'tablist' },
@@ -191,6 +193,7 @@ function renderOverview(ctx: AppContext, root: HTMLElement): void {
           'div',
           { class: 'overview' },
           h('h2', { class: 'panel-title' }, tr(overview.title)),
+          listenRow(ctx, `scene:${scene}`),
           ...paragraphs(tr(overview.text), 'lead'),
           overview.actions?.length
             ? h(
@@ -209,7 +212,7 @@ function renderOverview(ctx: AppContext, root: HTMLElement): void {
               )
             : null,
         )
-      : null,
+      : listenRow(ctx, `scene:${scene}`),
     h('h3', { class: 'section-title' }, t('partsInScene'), h('span', { class: 'count' }, String(parts.length))),
     h(
       'div',

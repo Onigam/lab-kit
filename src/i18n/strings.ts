@@ -120,6 +120,23 @@ const COMMON = {
     'Essayez une version récente de Chrome, Firefox, Safari ou Edge, vérifiez que l’accélération matérielle est activée, ou ouvrez cette page sur un autre appareil.',
     'Try a recent version of Chrome, Firefox, Safari or Edge, check that hardware acceleration is on, or open this page on another device.',
   ],
+  // the spoken guide (narration)
+  narrListen: ['Écouter', 'Listen'],
+  narrReplay: ['Réécouter', 'Listen again'],
+  narrIntro: ['Écouter la présentation', 'Listen to the introduction'],
+  narrPlayer: ['Guide parlé', 'Spoken guide'],
+  narrSubtitles: ['Sous-titres', 'Subtitles'],
+  narrGuidance: ['Guidage 3D', '3D guidance'],
+  narrResume: ['Reprendre le guidage', 'Resume guidance'],
+  narrSpeed: ['Vitesse de lecture', 'Playback speed'],
+  narrSeek: ['Position dans l’audio', 'Position in the audio'],
+  narrOf: ['sur', 'of'],
+  narrLoading: ['Chargement…', 'Loading…'],
+  narrBlocked: [
+    'Lecture bloquée par le navigateur : appuyez sur lecture.',
+    'Playback blocked by the browser: press play.',
+  ],
+  narrUnavailable: ['Audio indisponible.', 'Audio unavailable.'],
 } as const satisfies Record<string, readonly [string, string]>;
 
 export type CommonKey = keyof typeof COMMON;

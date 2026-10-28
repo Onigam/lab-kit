@@ -15,6 +15,7 @@ looks and behaves the same.
 | `@onigam/lab-kit/drawings`   | A3 SVG drawing kit (views, dimensions, hatching, title block) and the `DrawingSheet` type                                                                                   |
 | `@onigam/lab-kit/i18n`       | FR/EN language state, `l(fr, en)`, the registry of interface strings (`registerStrings`, `strL`)                                                                            |
 | `@onigam/lab-kit/content`    | Types of the content a lab writes: parts, guide steps, lessons                                                                                                              |
+| `@onigam/lab-kit/narration`  | The spoken guide without DOM: manifest types and reading, cue scheduling and replay, captions, `validateManifest` for a lab's own test                                      |
 | `@onigam/lab-kit/sim/*`      | Small physics helpers: `hydraulic` (pipe friction, nozzles, valves), `electric` (LiFePO4 curve, cables)                                                                     |
 | `@onigam/lab-kit/styles.css` | The graphic frame (paper grid, copper accent, Space Grotesk / JetBrains Mono)                                                                                               |
 
@@ -45,7 +46,7 @@ mountLab(myLab, {
 
 `myLab` is a `LabDefinition`: an id (prefix of the keys stored in the browser), brand, simulation (`step`, `params`,
 `set`, `onChange`), 3D worlds (`SceneDef[]`), parts, optional guides, lessons and drawings, the bottom-strip values, the
-"Sources" content and a few hooks (`partActions`, `onFrame`, `onCutaway`). Modes without content are hidden
+"Sources" content and a few hooks (`partActions`, `onFrame`, `onCutaway`, `narration`). Modes without content are hidden
 automatically. See `src/ui/lab.ts` for the full contract.
 A guide plays in one world by default; a step may name another with `GuideStep.scene`, and the app follows the step
 into that world (the Pelton-style build of a device in one world, then its fitting in another).
@@ -78,6 +79,21 @@ come before the text of the overview, so the first button is not below the fold 
 - **No WebGL**: `mountLab` shows a message (French and English) and returns `null`.
 - **Contrast**: the text greys and accents reach 4.5:1 (`--ink-3`, `--water-ink`, `--copper-ink`, `--leaf-ink`); the fills
   keep their hues (`--ink-4` is the old `--ink-3`).
+
+### Spoken guide (narration)
+
+A lab can speak. `LabDefinition.narration = { manifest: 'audio/{lang}/manifest.json', onCue? }` turns on a spoken explanation of
+the whole lab (a speaker button in the top bar), of each world and of each part (an « Écouter · 0:42 » button on the overview
+and on the sheet), with subtitles and a transport bar (play/pause, position, speed, subtitles, 3D guidance, and the mention of
+the synthetic voice), and the 3D view follows what the narrator says: the camera flies to the parts, selects, explodes,
+turns X-ray or the section on, runs a lab hook (`onCue(ctx, name, arg)`: a preset, a scenario, the time of day…). Seeking
+replays the state; the visitor taking the camera, the world or the mode pauses the guidance (the audio goes on) until
+« Reprendre le guidage ». The audio is **pre-rendered** by `tools/narration/generate.mjs` from a script
+(ElevenLabs, a key outside the repository) and shipped as static files: the app never calls an API, nothing plays by itself,
+and a language without a manifest shows nothing of it. The script format, the cue markers, the manifest and the player's
+behaviour are in [`docs/narration.md`](docs/narration.md). A lab's test can check its manifests against its content with
+`readManifest` / `validateManifest` from `@onigam/lab-kit/narration`; `node tools/narration/selftest.mjs` checks the kit's own
+scheduling and replay logic.
 
 The kit targets bundlers (Vite): the emitted modules use extensionless relative imports.
 
@@ -125,6 +141,17 @@ redimensionnement et à l'ouverture du volet ; « Vue d'ensemble » suit le curs
 vers le pointeur, et un glissement qui démarre sur une pièce fait tourner la caméra autour du point saisi (il reste sous le doigt,
 sans saut de vue ; `Stage.setPivot` fixe le point de rotation d'un glissement sur le vide) ; sans WebGL, `mountLab` affiche
 un message bilingue et renvoie `null`. Un monde lourd peut être construit à la première visite (`module: lazyModule('id', () => créerMonde())`), et les raccourcis d'une vue d'ensemble peuvent ouvrir un mode (`{ label, mode }`).
+
+**Guide parlé** : un lab peut parler. `LabDefinition.narration = { manifest: 'audio/{lang}/manifest.json', onCue? }` ajoute une
+présentation orale du lab (bouton haut-parleur dans la barre du haut), de chaque monde et de chaque pièce (bouton
+« Écouter · 0:42 » sur la vue d'ensemble et sur la fiche), avec sous-titres, barre de lecture (lecture/pause, position, vitesse,
+sous-titres, guidage 3D, mention de la voix de synthèse), et la vue 3D suit la narration : la caméra vole vers les pièces, les
+sélectionne, éclate, active la transparence ou la coupe, appelle un crochet du lab (`onCue(ctx, nom, arg)`). Se déplacer dans
+l'audio rejoue l'état ; reprendre la caméra, le monde ou le mode à la main suspend le guidage (l'audio continue) jusqu'à
+« Reprendre le guidage ». L'audio est **pré-généré** (`tools/narration/generate.mjs`, ElevenLabs, clé hors dépôt) et livré en
+fichiers statiques : l'application n'appelle aucune API, rien ne démarre seul, et une langue sans manifeste n'affiche rien.
+Format du script, marqueurs, manifeste et comportement : [`docs/narration.md`](docs/narration.md) ; test côté lab :
+`readManifest` / `validateManifest` (`@onigam/lab-kit/narration`).
 
 Un lab s'installe par dépendance Git épinglée sur un tag (`git+https://github.com/Onigam/lab-kit.git#v0.1.0`), avec
 `three` en dépendance « pair ». `main` ne contient jamais `dist/` : `npm run release` construit `dist/`, le commit sur un

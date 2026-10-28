@@ -2154,7 +2154,8 @@ body.panel-resizing {
     display: flex;
     flex-direction: column;
   }
-  .overview > .panel-title {
+  .overview > .panel-title,
+  .overview > .listen {
     order: -2;
   }
   .overview > .actions {
@@ -2434,4 +2435,321 @@ body.panel-resizing {
 
 .unsupported__card .hint {
   margin: 0;
+}
+
+/* ------------------------------------------------------------- spoken guide (narration) */
+
+/* the speaker button of the top bar: a dot while the narrator speaks */
+.narr-speaker {
+  position: relative;
+  color: var(--ink-2);
+}
+
+.narr-speaker[hidden] {
+  display: none;
+}
+
+.narr-speaker:hover {
+  border-color: var(--ink);
+  color: var(--ink);
+}
+
+.narr-speaker.is-on {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--paper);
+}
+
+.narr-speaker__dot {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  display: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--copper);
+  box-shadow: 0 0 0 2px var(--paper);
+}
+
+.narr-speaker.is-playing .narr-speaker__dot {
+  display: block;
+  animation: narr-dot 1.6s ease-in-out infinite;
+}
+
+@keyframes narr-dot {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .narr-speaker__dot {
+    animation: none !important;
+  }
+}
+
+/* « Écouter · 0:42 » on an overview, a part sheet or a lesson */
+.listen {
+  margin: 4px 0 10px;
+}
+
+.btn--listen svg {
+  color: var(--copper-ink);
+}
+
+.btn--listen.is-on svg {
+  color: inherit;
+}
+
+/* the dock over the 3D view: subtitles, then the transport bar, above the toolbar (--tools-h is set by the application) */
+.narr {
+  position: absolute;
+  left: 50%;
+  bottom: calc(14px + var(--tools-h, 48px) + 8px);
+  transform: translateX(-50%);
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: min(780px, calc(100% - 28px));
+  container: narr / inline-size;
+  /* only the bar and the notice take the pointer: the 3D view stays grabbable around the subtitles */
+  pointer-events: none;
+}
+
+.narr[hidden] {
+  display: none;
+}
+
+.narr:focus {
+  outline: none;
+}
+
+/* subtitles: discreet, two lines at most, the room of two lines is always kept so the dock does not change height */
+.narr__subs {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  min-height: 56px;
+}
+
+.narr__subs[hidden] {
+  display: none;
+}
+
+.narr__caption {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  margin: 0;
+  max-width: max(70%, min(100%, 340px));
+  padding: 6px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-s);
+  background: rgba(251, 248, 242, 0.88);
+  backdrop-filter: blur(6px);
+  box-shadow: 0 4px 14px -8px rgba(29, 43, 58, 0.5);
+  color: var(--ink);
+  font-size: 15px;
+  line-height: 1.35;
+  text-align: center;
+  text-wrap: balance;
+}
+
+.narr__caption:empty {
+  visibility: hidden;
+}
+
+.narr__bar {
+  pointer-events: auto;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) minmax(0, 1.6fr) auto;
+  grid-template-areas: 'play meta time tools';
+  align-items: center;
+  gap: 4px 12px;
+  padding: 6px 8px;
+  border: 1px solid var(--line-2);
+  border-radius: 14px;
+  background: rgba(251, 248, 242, 0.94);
+  backdrop-filter: blur(6px);
+  box-shadow: var(--shadow);
+}
+
+.narr__play {
+  grid-area: play;
+}
+
+.narr__meta {
+  grid-area: meta;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.25;
+}
+
+.narr__title,
+.narr__voice {
+  display: block;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.narr__title {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.narr__voice {
+  font-size: 11.5px;
+  color: var(--ink-3);
+}
+
+.narr__time {
+  grid-area: time;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--ink-2);
+}
+
+.narr__range {
+  width: 100%;
+  height: 24px;
+  margin: 0;
+  accent-color: var(--copper);
+}
+
+.narr__tools {
+  grid-area: tools;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.narr__tools .tool {
+  min-width: 32px;
+  min-height: 32px;
+  justify-content: center;
+}
+
+.narr__speed {
+  min-width: 44px;
+  font-family: var(--mono);
+  font-size: 12px;
+}
+
+.narr__close {
+  margin-left: 4px;
+}
+
+/* the line over the dock: a problem, « Réécouter » at the end, « Reprendre le guidage » when the visitor took the camera */
+.narr__notice {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  padding: 4px 6px 4px 12px;
+  border: 1px solid var(--line-2);
+  border-radius: 999px;
+  background: var(--card);
+  box-shadow: var(--shadow);
+  color: var(--ink);
+  font-size: 12.5px;
+  white-space: nowrap;
+  pointer-events: auto;
+}
+
+.narr__notice:empty {
+  display: none;
+}
+
+.narr__notice .btn {
+  margin: 0 -2px 0 -6px;
+}
+
+/* a narrow dock: the controls on one row, the position under them, the toggles as icons */
+@container narr (max-width: 699px) {
+  .narr__bar {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      'play meta tools'
+      'time time time';
+  }
+  .narr__label {
+    display: none;
+  }
+  .narr__tools .tool {
+    padding: 7px 8px;
+  }
+}
+
+/* a phone: the dock rides above the toolbar that rides on the bottom sheet */
+@media (max-width: 639px), (max-width: 760px) and (min-height: 501px) {
+  .narr {
+    left: 12px;
+    right: 12px;
+    width: auto;
+    transform: none;
+    bottom: calc(var(--sheet-h) - var(--sheet-off) + 10px + var(--tools-h, 50px) + 8px);
+    transition: bottom 0.25s ease;
+  }
+  body.sheet-dragging .narr {
+    transition: none;
+  }
+}
+
+/* a short screen (a phone on its side): the toolbar is a row at the top, the dock sits at the bottom, clear of the panel
+   button (and of the card of the selected part, which the panel repeats) */
+@media (max-height: 500px) {
+  .narr {
+    left: 10px;
+    right: 10px;
+    width: auto;
+    transform: none;
+    bottom: 10px;
+    transition: none;
+  }
+  body.narr-on .peek {
+    display: none;
+  }
+  /* little height to spare: the subtitles are laid over the 3D view just above the bar instead of taking room from it */
+  .narr__subs {
+    position: absolute;
+    right: 0;
+    bottom: 100%;
+    left: 0;
+    min-height: 0;
+    margin-bottom: 6px;
+  }
+  .narr__notice {
+    margin-bottom: 70px;
+  }
+}
+
+@media (max-height: 500px) and (min-width: 640px) {
+  .narr {
+    right: 54px;
+  }
+}
+
+@media (max-width: 639px) and (max-height: 500px) {
+  .narr {
+    left: 12px;
+    right: 12px;
+    bottom: calc(var(--sheet-h) - var(--sheet-off) + 8px);
+    transition: bottom 0.25s ease;
+  }
+  body.sheet-dragging .narr {
+    transition: none;
+  }
 }

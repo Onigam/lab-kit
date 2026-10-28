@@ -5,8 +5,18 @@ export * from './display';
 export * from './dom';
 export * from './lab';
 export * from './mount';
+export * from './narration';
+export * from './narration-ui';
 export * from './panel-size';
 export * from './state';
 export * from './unsupported';
 export * from './viewer';
 export * from './widgets';
+export type {
+  NarrationAction,
+  NarrationCaption,
+  NarrationCue,
+  NarrationManifest,
+  NarrationScope,
+  NarrationSegment,
+} from '../narration';

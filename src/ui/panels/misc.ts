@@ -2,6 +2,7 @@ import type { Lesson, PartCategory } from '../../content/types';
 import { t, tr, type CommonKey } from '../../i18n';
 import type { AppContext } from '../context';
 import { fill, h, icon, ICONS, rich } from '../dom';
+import { listenRow } from '../narration-ui';
 
 // Lessons, parts catalogue and the sources panel shell.
 
@@ -108,6 +109,7 @@ export function renderLessonsPanel(ctx: AppContext, root: HTMLElement, onProgres
     ),
     h('h2', { class: 'panel-title' }, tr(lesson.title)),
     h('p', { class: 'lead' }, rich(tr(lesson.summary))),
+    listenRow(ctx, `lesson:${lesson.id}`),
     lesson.figures?.length
       ? h(
           'div',

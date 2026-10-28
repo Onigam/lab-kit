@@ -12,7 +12,7 @@ export interface MountOptions {
   app: HTMLElement;
   /** Element the 3D canvas lives in (`#viewport`, a child of `app`). */
   viewport: HTMLElement;
-  /** Expose `window.__lab = { stage, engine, store }` for debugging (pass the dev-mode flag). */
+  /** Expose `window.__lab = { stage, engine, store }` (and `narration`, when the lab has one) for debugging (pass the dev-mode flag). */
   expose?: boolean;
 }
 
@@ -77,6 +77,9 @@ export function mountLab<S extends LabSim>(def: LabDefinition<S>, opts: MountOpt
   if (opts.expose) Object.assign(window, { __lab: { stage, engine: def.sim, store } });
   app = new App(def, opts.app, opts.viewport, stage, store, display);
   const mounted = app;
+  // the spoken guide, for a lab's own tests and probes (`window.__lab.narration.state`)
+  if (opts.expose && mounted.ctx.narration)
+    Object.assign((window as { __lab?: object }).__lab ?? {}, { narration: mounted.ctx.narration });
 
   // deep links: #scene, optionally #scene/part-id
   const applyHash = (): void => {

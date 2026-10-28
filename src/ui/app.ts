@@ -1,9 +1,11 @@
 import { getLang, onLangChange, setLang, t, tr, colon, type CommonKey } from '../i18n';
 import type { Stage, ViewOpts } from '../three';
-import { AppContext } from './context';
+import { AppContext, hasMode } from './context';
 import { guideDef, stepScene, type DisplayController } from './display';
 import { fill, h, icon, ICONS, rich, watchOverflow } from './dom';
 import type { LabDefinition, LabSim, PanelController } from './lab';
+import type { NarrationEvent } from './narration';
+import { NarrationPlayer } from './narration-ui';
 import { panelEdge } from './panel-size';
 import { renderGuidePanel } from './panels/guide';
 import { renderAboutPanel, renderLessonsPanel, renderPartsPanel } from './panels/misc';
@@ -60,6 +62,10 @@ export class App<S extends LabSim = any> {
   private peek = h('div', { class: 'peek' });
   private panelToggle = h('button', { class: 'panel-toggle' });
   private viewer: DrawingViewer;
+  /** The spoken guide's dock and header button (only when the lab has a `narration`). */
+  private narration: NarrationPlayer | null = null;
+  private narrationActive = false;
+  private viewportEl: HTMLElement;
   private simPanel: PanelController | null;
   private lastStrip = 0;
   private lastAlarmKey = '';
@@ -91,7 +97,14 @@ export class App<S extends LabSim = any> {
       () => def.plans?.sheets ?? [],
       (id) => store.set({ drawing: id }),
     );
+    this.viewportEl = viewport;
     viewport.append(this.toolbar, this.peek, this.panelToggle, this.viewer.el);
+    const engine = this.ctx.narration;
+    if (engine) {
+      this.narration = new NarrationPlayer(engine);
+      viewport.append(this.narration.el);
+      engine.onChange((event) => this.onNarration(event));
+    }
     this.panelToggle.addEventListener('click', () => store.set({ panelOpen: !store.state.panelOpen }));
     this.strip.append(this.stripClock, this.stripValues, this.stripAlarms);
     host.append(this.header, this.rail, this.panel, this.strip);
@@ -111,6 +124,30 @@ export class App<S extends LabSim = any> {
     this.renderAll();
     this.updateInsets(false);
     this.warmLater(store.state.scene);
+    engine?.start();
+  }
+
+  /** The spoken guide changed: its buttons appear with the manifest, the dock takes room from the 3D view while it is up. */
+  private onNarration(event: NarrationEvent): void {
+    const player = this.narration;
+    if (!player) return;
+    if (event === 'ready') {
+      this.renderHeader();
+      // the « Écouter » buttons are in the explorer and in a lesson; the visitor may have scrolled the panel already
+      if (this.store.state.mode === 'explore' || this.store.state.mode === 'lessons') {
+        const top = this.panelBody.scrollTop;
+        this.renderPanel();
+        this.panelBody.scrollTop = top;
+      }
+      return;
+    }
+    if (event !== 'state') return;
+    const active = player.active;
+    if (active === this.narrationActive) return;
+    this.narrationActive = active;
+    document.body.classList.toggle('narr-on', active);
+    // on a phone the open sheet would leave no room for the 3D view the narrator is moving: fold it
+    if (active && window.matchMedia(PHONE).matches && this.store.state.sheet) this.store.set({ sheet: false });
   }
 
   /** When the machine is idle, compile the shaders of a world (and of the section tool and the outline), a step at a time. */
@@ -217,6 +254,11 @@ export class App<S extends LabSim = any> {
     const update = () => this.updateInsets();
     new ResizeObserver(update).observe(viewport);
     new ResizeObserver(update).observe(this.toolbarRow);
+    if (this.narration) {
+      // the dock rides above the toolbar, whatever height the toolbar has (it wraps in a narrow view)
+      new ResizeObserver(update).observe(this.narration.el);
+      new ResizeObserver(() => this.syncTools()).observe(this.toolbar);
+    }
     for (const q of [PHONE, SHORT]) window.matchMedia(q).addEventListener('change', update);
     this.updateInsets(false);
   }
@@ -225,6 +267,8 @@ export class App<S extends LabSim = any> {
     const phone = window.matchMedia(PHONE).matches;
     const short = window.matchMedia(SHORT).matches;
     const tools = this.toolbar.offsetHeight;
+    // the spoken guide's dock (subtitles and transport bar): 0 unless it is up
+    const dock = this.narration?.cover() ?? 0;
     let top = 0;
     let bottom = 0;
     if (short) top = tools ? 8 + tools + 6 : 0; // the toolbar is a row at the top of the view
@@ -233,9 +277,27 @@ export class App<S extends LabSim = any> {
       bottom = this.store.state.sheet ? this.panel.offsetHeight : this.grip.offsetHeight;
       if (!short && tools) bottom += 10 + tools + 8; // the toolbar rides on the sheet
     }
+    let narrow = phone || short || !tools ? 0 : 14 + tools + 8;
+    if (dock) {
+      if (phone)
+        bottom += dock; // above the toolbar that rides on the sheet (or above the sheet)
+      else if (short)
+        bottom += dock + 10; // at the bottom, the toolbar is a row at the top
+      else {
+        // above the toolbar that floats over the view: all of it is kept clear, whatever the width
+        bottom = 14 + tools + 8 + dock;
+        narrow = 0;
+      }
+    }
     this.ctx.stage.setViewInsets({ top, bottom, left: 0, right: 0 }, animate);
     // the toolbar floats over the view of a desktop layout: a narrow one keeps room for it (see Stage.setNarrowClearance)
-    this.ctx.stage.setNarrowClearance(phone || short || !tools ? 0 : 14 + tools + 8, animate);
+    this.ctx.stage.setNarrowClearance(narrow, animate);
+  }
+
+  /** Tell the stylesheet how tall the toolbar is: the spoken guide's dock sits above it. */
+  private syncTools(): void {
+    this.viewportEl.style.setProperty('--tools-h', `${this.toolbar.offsetHeight}px`);
+    if (this.narration?.active) this.updateInsets();
   }
 
   private applyCutaway(): void {
@@ -261,6 +323,9 @@ export class App<S extends LabSim = any> {
     const s = this.store.state;
     const lessons = this.def.lessons?.items ?? [];
     const done = this.ctx.lessonsDone().size;
+    // the speaker button is the same element every time: keep the keyboard focus on it
+    const speaker = this.narration?.speaker;
+    const speakerFocused = !!speaker && document.activeElement === speaker;
     fill(
       this.header,
       h(
@@ -298,6 +363,7 @@ export class App<S extends LabSim = any> {
               h('i', { style: `--p:${(done / lessons.length) * 100}%` }),
             )
           : null,
+        this.narration?.speakerShown ? this.narration.speaker : null,
         h(
           'div',
           { class: 'segmented lang-switch' },
@@ -307,22 +373,12 @@ export class App<S extends LabSim = any> {
         ),
       ),
     );
+    if (speakerFocused) speaker.focus({ preventScroll: true });
   }
 
   /** Modes with content in this lab (a mode without content is hidden, never reinvented). */
   private availableModes(): typeof MODES {
-    const d = this.def;
-    const has: Record<Mode, boolean> = {
-      explore: true,
-      assembly: !!d.guides?.assembly,
-      install: !!d.guides?.install,
-      sim: !!d.simPanel,
-      plans: !!d.plans?.sheets.length,
-      lessons: !!d.lessons?.items.length,
-      parts: true,
-      about: true,
-    };
-    return MODES.filter(([mode]) => has[mode]);
+    return MODES.filter(([mode]) => hasMode(this.def, mode));
   }
 
   private renderRail(): void {

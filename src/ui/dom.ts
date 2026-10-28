@@ -139,4 +139,6 @@ export const ICONS = {
   warn: 'M12 4l9 16H3z|M12 10v4|M12 17v.01',
   ok: 'M5 12l4 4 10-10',
   menu: 'M4 7h16|M4 12h16|M4 17h16',
+  speaker: 'M4 9.5v5h3.5L12 18.5v-13L7.5 9.5H4z|M15.5 9a4 4 0 0 1 0 6|M18 6.5a7.5 7.5 0 0 1 0 11',
+  subtitles: 'M4 6h16v12H4z|M7.5 11h3|M13.5 11h3|M7.5 14.5h9',
 };
