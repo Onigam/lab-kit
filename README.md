@@ -91,7 +91,7 @@ replays the state; the visitor taking the camera, the world or the mode pauses t
 « Reprendre le guidage ». The audio is **pre-rendered** by `tools/narration/generate.mjs` from a script
 (ElevenLabs, a key outside the repository) and shipped as static files: the app never calls an API, nothing plays by itself,
 and a language without a manifest shows nothing of it. The script format, the cue markers, the manifest and the player's
-behaviour are in [`docs/narration.md`](docs/narration.md). A lab's test can check its manifests against its content with
+behaviour are in [`docs/narration.md`](docs/narration.md). The tone to write in (Pelton Lab's is the standard), the voice and the process are in [`docs/narration-style.md`](docs/narration-style.md); `node tools/narration/tone-stats.mjs <script>` compares a script's tone with Pelton's. A lab's test can check its manifests against its content with
 `readManifest` / `validateManifest` from `@onigam/lab-kit/narration`; `node tools/narration/selftest.mjs` checks the kit's own
 scheduling and replay logic.
 

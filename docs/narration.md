@@ -1,5 +1,7 @@
 # Narration: a spoken guide for a lab
 
+> What to say and how (tone, voice, budget, process): [`narration-style.md`](narration-style.md). The tone of Pelton Lab's script is the standard.
+
 A lab can offer a spoken explanation of the whole site, of each world and of each part, with subtitles, and the 3D view follows
 what the narrator says (camera, selection, explode, section, flows, simulation). The audio is **pre-rendered** by
 `tools/narration/generate.mjs` from a script and shipped as static files: no API key and no cost at runtime.
