@@ -1,10 +1,11 @@
 import { configureI18n } from '../i18n';
-import { Stage, type ViewOpts } from '../three';
+import { lazyBuilder, Stage, type ViewOpts } from '../three';
 import { App } from './app';
 import type { AppContext } from './context';
 import { DisplayController } from './display';
 import type { LabDefinition, LabSim } from './lab';
 import { createStore, type Store } from './state';
+import { showUnsupported, webglAvailable } from './unsupported';
 
 export interface MountOptions {
   /** Root element of the application grid (`#app`). */
@@ -24,34 +25,50 @@ export interface MountedLab {
 /**
  * Boot a lab: the shared renderer with the lab's 3D worlds, the application shell, deep links
  * (`#scene/part`) and the render loop that steps the simulation.
+ *
+ * Returns `null` when the browser has no WebGL: the page then shows a message (French and English) instead of the lab.
  */
-export function mountLab<S extends LabSim>(def: LabDefinition<S>, opts: MountOptions): MountedLab {
+export function mountLab<S extends LabSim>(def: LabDefinition<S>, opts: MountOptions): MountedLab | null {
   configureI18n({ storageKey: `${def.id}:lang` });
   const store = createStore(def.defaultScene);
   let app: App<S> | null = null;
 
-  const stage = new Stage(opts.viewport, {
-    onPick: (id) => app?.ctx.selectPart(id, { frame: false }),
-    onHotspot: (hs) => {
-      if (!app) return;
-      if (hs.goto) app.ctx.gotoScene(hs.goto);
-      else app.ctx.selectPart(hs.partId);
-    },
-    onDoublePick: (id) => {
-      if (!app) return;
-      // double-click: isolate that part (or come back to the whole device on empty space)
-      if (id) {
-        app.ctx.selectPart(id, { frame: false });
-        store.set({ isolate: true });
-        requestAnimationFrame(() => stage.frameParts([id], 1.5));
-      } else {
-        store.set({ isolate: false, selected: null });
-        stage.frameAll();
-      }
-    },
-    onHover: () => {},
-  });
-  for (const scene of def.scenes) stage.register(scene.module);
+  let stage: Stage;
+  try {
+    if (!webglAvailable()) throw new Error('WebGL is not available');
+    stage = new Stage(opts.viewport, {
+      onPick: (id) => app?.ctx.selectPart(id, { frame: false }),
+      onHotspot: (hs) => {
+        if (!app) return;
+        if (hs.goto) app.ctx.gotoScene(hs.goto);
+        else app.ctx.selectPart(hs.partId);
+      },
+      onDoublePick: (id) => {
+        if (!app) return;
+        // double-click: isolate that part (or come back to the whole device on empty space)
+        if (id) {
+          app.ctx.selectPart(id, { frame: false });
+          store.set({ isolate: true });
+          requestAnimationFrame(() => stage.frameParts([id], 1.5));
+        } else {
+          app.ctx.store.set({ selected: null });
+          app.ctx.overview();
+        }
+      },
+      onHover: () => {},
+    });
+  } catch (err) {
+    // no WebGL, a blocked GPU or a context lost at start: say so instead of leaving an empty page
+    console.warn('[lab-kit] the 3D view cannot start:', err);
+    showUnsupported(opts.app);
+    return null;
+  }
+  // a world made with `lazyModule` is built at its first visit
+  for (const scene of def.scenes) {
+    const build = lazyBuilder(scene.module);
+    if (build) stage.defineScene(scene.id, build);
+    else stage.register(scene.module);
+  }
   stage.setActive(store.state.scene);
   // start on an overview of the whole device, sized to the actual viewport
   requestAnimationFrame(() => stage.frameAll(0.01));

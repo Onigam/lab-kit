@@ -2,7 +2,7 @@ import type { PartInfo } from '../content';
 import type { Stage } from '../three';
 import type { LabDefinition, LabSim, SceneDef } from './lab';
 import { guideDef, guideScenes, stepScene } from './display';
-import type { Mode, Store } from './state';
+import type { Mode, Store, UiState } from './state';
 
 // Glue shared by every panel: navigation between worlds/modes and part selection.
 
@@ -72,7 +72,24 @@ export class AppContext<S extends LabSim = any> {
     if (scene === this.ui.scene) return;
     const guide = guideDef(this.def, this.ui.mode);
     const mode: Mode = guide && !guideScenes(guide).has(scene) ? 'explore' : this.ui.mode;
-    this.store.set({ scene, mode, selected: null, isolate: false, explode: 0 });
+    const patch: Partial<UiState> = { scene, mode, selected: null, isolate: false, explode: 0 };
+    if (guide && mode !== 'explore') {
+      // a guide step belongs to one world: go to the nearest step that plays in the new one
+      const step = Math.min(this.ui.step, Math.max(0, guide.steps.length - 1));
+      let best = -1;
+      guide.steps.forEach((_, i) => {
+        if (stepScene(guide, i) !== scene) return;
+        if (best < 0 || Math.abs(i - step) <= Math.abs(best - step)) best = i;
+      });
+      if (best >= 0) Object.assign(patch, { step: best, playing: false });
+    }
+    this.store.set(patch);
+  }
+
+  /** The whole device in view. Waits one frame after clearing "isolate" so the hidden parts are counted again. */
+  overview(): void {
+    this.store.set({ isolate: false });
+    requestAnimationFrame(() => this.stage.frameAll());
   }
 
   setMode(mode: Mode): void {

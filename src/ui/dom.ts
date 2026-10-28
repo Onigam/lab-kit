@@ -56,6 +56,31 @@ export function paragraphs(text: string, cls?: string): HTMLParagraphElement[] {
   return text.split(/\n\s*\n/).map((para) => h('p', cls ? { class: cls } : {}, rich(para)));
 }
 
+/**
+ * Tell the stylesheet where a scrolling element has more to show. Sets `--fade-start` and `--fade-end` on `el` (how much
+ * to fade at each edge where its content goes on) and `data-more="start end"` on `host` (default `el`), so a scroller
+ * without a visible scrollbar (the phone rail and toolbar) can show an arrow and a fade at its cut edge.
+ */
+export function watchOverflow(el: HTMLElement, host: HTMLElement = el, fade = 22): void {
+  const update = () => {
+    const x = el.scrollWidth - el.clientWidth;
+    const y = el.scrollHeight - el.clientHeight;
+    const horizontal = x >= y;
+    const max = horizontal ? x : y;
+    const pos = horizontal ? el.scrollLeft : el.scrollTop;
+    const start = max > 2 && pos > 2;
+    const end = max > 2 && pos < max - 2;
+    el.style.setProperty('--fade-start', start ? `${fade}px` : '0px');
+    el.style.setProperty('--fade-end', end ? `${fade}px` : '0px');
+    host.dataset.more = [start ? 'start' : '', end ? 'end' : ''].join(' ').trim();
+  };
+  el.addEventListener('scroll', update, { passive: true });
+  new ResizeObserver(update).observe(el);
+  new MutationObserver(update).observe(el, { childList: true, subtree: true, characterData: true });
+  void document.fonts?.ready.then(update);
+  update();
+}
+
 /** Replace the children of `el`, skipping null/false entries. */
 export function fill(el: Element, ...children: Child[]): void {
   el.replaceChildren();

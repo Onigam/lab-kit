@@ -1,14 +1,15 @@
 import { getLang, onLangChange, setLang, t, tr, colon, type CommonKey } from '../i18n';
-import type { Stage } from '../three';
+import type { Stage, ViewOpts } from '../three';
 import { AppContext } from './context';
 import { guideDef, stepScene, type DisplayController } from './display';
-import { fill, h, icon, ICONS, rich } from './dom';
+import { fill, h, icon, ICONS, rich, watchOverflow } from './dom';
 import type { LabDefinition, LabSim, PanelController } from './lab';
 import { panelEdge } from './panel-size';
 import { renderGuidePanel } from './panels/guide';
 import { renderAboutPanel, renderLessonsPanel, renderPartsPanel } from './panels/misc';
 import { renderPartPanel } from './panels/part';
 import { renderPlansPanel } from './panels/plans';
+import { bindSheetDrag } from './sheet';
 import type { Mode, Store, UiState } from './state';
 import { DrawingViewer } from './viewer';
 
@@ -26,6 +27,13 @@ const MODES: [Mode, CommonKey, keyof typeof ICONS][] = [
   ['about', 'modeAbout', 'about'],
 ];
 
+/**
+ * The phone layout (bottom sheet) and the short-screen layout (toolbar at the top): same breakpoints as the stylesheet. A phone
+ * on its side (from 640 px wide, up to 500 px high) has the side panel, like a tablet.
+ */
+const PHONE = '(max-width: 639px), (max-width: 760px) and (min-height: 501px)';
+const SHORT = '(max-height: 500px)';
+
 const SPEEDS = [1, 60, 600, 3600];
 const SLOWMO: [number, string][] = [
   [1, '×1'],
@@ -38,9 +46,13 @@ export class App<S extends LabSim = any> {
   readonly ctx: AppContext<S>;
   private header = h('header', { class: 'topbar' });
   private rail = h('nav', { class: 'rail' });
+  /** The modes row: it scrolls on a phone (a fade shows where it goes on); on a desktop it is transparent to layout. */
+  private railScroll = h('div', { class: 'rail__scroll' });
   private panel = h('aside', { class: 'panel' });
   private panelBody = h('div', { class: 'panel__body' });
+  private grip = h('button', { class: 'panel__grip', 'aria-expanded': 'false' });
   private toolbar = h('div', { class: 'toolbar' });
+  private toolbarRow = h('div', { class: 'toolbar__row' });
   private strip = h('footer', { class: 'strip' });
   private stripValues = h('div', { class: 'strip__values' });
   private stripAlarms = h('div', { class: 'strip__alarms', 'aria-live': 'polite' });
@@ -65,15 +77,16 @@ export class App<S extends LabSim = any> {
     this.ctx = new AppContext(def, stage, store);
     this.visited.add(store.state.scene);
     this.simPanel = def.simPanel?.(this.ctx) ?? null;
-    this.panel.append(
-      panelEdge(def.id),
-      h('button', {
-        class: 'panel__grip',
-        'aria-label': t('menu'),
-        onclick: () => store.set({ sheet: !store.state.sheet }),
-      }),
-      this.panelBody,
-    );
+    this.grip.setAttribute('aria-label', t('menu'));
+    this.panel.append(panelEdge(def.id), this.grip, this.panelBody);
+    bindSheetDrag({
+      panel: this.panel,
+      grip: this.grip,
+      isOpen: () => store.state.sheet,
+      setOpen: (sheet) => store.set({ sheet }),
+    });
+    this.rail.append(this.railScroll);
+    this.toolbar.append(this.toolbarRow);
     this.viewer = new DrawingViewer(
       () => def.plans?.sheets ?? [],
       (id) => store.set({ drawing: id }),
@@ -82,6 +95,11 @@ export class App<S extends LabSim = any> {
     this.panelToggle.addEventListener('click', () => store.set({ panelOpen: !store.state.panelOpen }));
     this.strip.append(this.stripClock, this.stripValues, this.stripAlarms);
     host.append(this.header, this.rail, this.panel, this.strip);
+    watchOverflow(this.railScroll, this.rail);
+    watchOverflow(this.toolbarRow, this.toolbar);
+    watchOverflow(this.stripValues);
+    watchOverflow(this.stripAlarms);
+    this.watchLayout(viewport);
 
     stage.labelMode = store.state.labels;
     store.on((s, prev) => this.onState(s, prev));
@@ -91,6 +109,48 @@ export class App<S extends LabSim = any> {
     });
     onLangChange(() => this.renderAll());
     this.renderAll();
+    this.updateInsets(false);
+    this.warmLater(store.state.scene);
+  }
+
+  /** When the machine is idle, compile the shaders of a world (and of the section tool and the outline), a step at a time. */
+  private warmLater(scene: string): void {
+    const idle = (window as { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => void })
+      .requestIdleCallback;
+    const later = (cb: () => void) => (idle ? idle.call(window, cb, { timeout: 2500 }) : window.setTimeout(cb, 600));
+    later(() => {
+      const stage = this.ctx.stage;
+      const mod = stage.get(scene);
+      const hook = this.def.onCutaway;
+      const sim = this.def.sim;
+      // the section tool changes the shaders (clipping planes): switch it on for the compile, then put it back. A world
+      // applies it in its `update` (from `view.cutaway`) and/or through the lab's `onCutaway` hook; both are asked once.
+      const view = (cutaway: boolean): ViewOpts => ({
+        slowMo: sim.params.slowMo,
+        cutaway,
+        schematic: this.store.state.schematic,
+        time: performance.now() / 1000,
+      });
+      const variant =
+        mod && !this.store.state.cutaway
+          ? () => {
+              hook?.(true, scene);
+              mod.update(sim.state, 0, view(true));
+              return () => {
+                hook?.(false, scene);
+                mod.update(sim.state, 0, view(false));
+              };
+            }
+          : undefined;
+      const steps = stage.warmSteps(scene, variant);
+      const next = () => {
+        const step = steps.shift();
+        if (!step) return;
+        step();
+        later(next);
+      };
+      next();
+    });
   }
 
   private onState(s: UiState, prev: UiState): void {
@@ -106,6 +166,7 @@ export class App<S extends LabSim = any> {
     }
     if (s.scene !== prev.scene) {
       stage.setActive(s.scene);
+      this.warmLater(s.scene);
       if (!this.visited.has(s.scene)) {
         this.visited.add(s.scene);
         requestAnimationFrame(() => stage.frameAll(0.01));
@@ -142,6 +203,39 @@ export class App<S extends LabSim = any> {
       this.renderToolbar();
     }
     this.renderPeek();
+    this.grip.setAttribute('aria-expanded', s.sheet ? 'true' : 'false');
+    if (s.sheet !== prev.sheet || s.mode !== prev.mode) this.updateInsets();
+  }
+
+  // ------------------------------------------------------------ what covers the 3D view
+
+  /**
+   * On a phone the bottom sheet (and the toolbar that rides on it) covers the lower part of the 3D view; on a short
+   * landscape screen the toolbar is a row at the top. The stage frames the subject in what is left.
+   */
+  private watchLayout(viewport: HTMLElement): void {
+    const update = () => this.updateInsets();
+    new ResizeObserver(update).observe(viewport);
+    new ResizeObserver(update).observe(this.toolbarRow);
+    for (const q of [PHONE, SHORT]) window.matchMedia(q).addEventListener('change', update);
+    this.updateInsets(false);
+  }
+
+  private updateInsets(animate = true): void {
+    const phone = window.matchMedia(PHONE).matches;
+    const short = window.matchMedia(SHORT).matches;
+    const tools = this.toolbar.offsetHeight;
+    let top = 0;
+    let bottom = 0;
+    if (short) top = tools ? 8 + tools + 6 : 0; // the toolbar is a row at the top of the view
+    if (phone) {
+      // the sheet shows its whole height when open, only its grip when closed
+      bottom = this.store.state.sheet ? this.panel.offsetHeight : this.grip.offsetHeight;
+      if (!short && tools) bottom += 10 + tools + 8; // the toolbar rides on the sheet
+    }
+    this.ctx.stage.setViewInsets({ top, bottom, left: 0, right: 0 }, animate);
+    // the toolbar floats over the view of a desktop layout: a narrow one keeps room for it (see Stage.setNarrowClearance)
+    this.ctx.stage.setNarrowClearance(phone || short || !tools ? 0 : 14 + tools + 8, animate);
   }
 
   private applyCutaway(): void {
@@ -234,7 +328,7 @@ export class App<S extends LabSim = any> {
   private renderRail(): void {
     const s = this.store.state;
     fill(
-      this.rail,
+      this.railScroll,
       ...this.availableModes().map(([mode, key, ic]) =>
         h(
           'button',
@@ -252,6 +346,20 @@ export class App<S extends LabSim = any> {
         ),
       ),
     );
+    this.revealActiveMode();
+  }
+
+  /** Scroll the rail (a phone's row, or a short screen's column) so the current mode is in view. */
+  private revealActiveMode(): void {
+    const sc = this.railScroll;
+    const btn = sc.querySelector<HTMLElement>('.is-active');
+    if (!btn || (sc.scrollWidth <= sc.clientWidth + 2 && sc.scrollHeight <= sc.clientHeight + 2)) return;
+    const b = btn.getBoundingClientRect();
+    const c = sc.getBoundingClientRect();
+    if (b.left < c.left + 8) sc.scrollLeft -= c.left + 8 - b.left;
+    else if (b.right > c.right - 8) sc.scrollLeft += b.right - (c.right - 8);
+    if (b.top < c.top + 8) sc.scrollTop -= c.top + 8 - b.top;
+    else if (b.bottom > c.bottom - 8) sc.scrollTop += b.bottom - (c.bottom - 8);
   }
 
   private renderPanel(): void {
@@ -312,12 +420,12 @@ export class App<S extends LabSim = any> {
     const slow = SLOWMO.find(([v]) => v === e.params.slowMo) ?? SLOWMO[0];
     const sel = s.selected;
     fill(
-      this.toolbar,
+      this.toolbarRow,
       h(
         'button',
         {
           class: 'tool',
-          onclick: () => (this.store.set({ isolate: false }), this.ctx.stage.frameAll()),
+          onclick: () => this.ctx.overview(),
           title: t('overviewHint'),
         },
         icon(ICONS.home, 16),
@@ -352,9 +460,9 @@ export class App<S extends LabSim = any> {
       guide || !sel
         ? null
         : btn(t('isolate'), s.isolate, () => {
-            this.store.set({ isolate: !s.isolate });
-            if (!s.isolate) requestAnimationFrame(() => this.ctx.stage.frameParts([sel], 1.5));
-            else this.ctx.stage.frameAll();
+            if (s.isolate) return this.ctx.overview();
+            this.store.set({ isolate: true });
+            requestAnimationFrame(() => this.ctx.stage.frameParts([sel], 1.5));
           }),
       // in the landscape, X-ray only makes sense around a selected part
       guide || (scene?.xrayNeedsSelection && !sel)
@@ -474,10 +582,15 @@ export class App<S extends LabSim = any> {
         ),
       ),
     );
-    const alarms = strip.alarms(sim);
+    // the worst first (a stable sort keeps the lab's order inside each group)
+    const alarms = strip
+      .alarms(sim)
+      .slice()
+      .sort((a, b) => Number(!!b.severe) - Number(!!a.severe));
     const key = alarms.map((a) => a.label).join('|');
     if (key !== this.lastAlarmKey) {
       this.lastAlarmKey = key;
+      this.strip.classList.toggle('has-alarm', alarms.length > 0);
       fill(
         this.stripAlarms,
         ...(alarms.length

@@ -45,7 +45,11 @@ export interface SceneModule<S = unknown> {
   /** Camera distance limits for the orbit controls. */
   minDistance: number;
   maxDistance: number;
-  /** Overview framing of a device world: how tight the camera is around its parts (default 0.82; a tall, narrow device needs more, about 1.3). */
+  /**
+   * Overview framing of a device world in a wide view: how tight the camera is around its parts, as a multiple of the radius of
+   * their bounding sphere (default 0.82; a tall, narrow device needs more, about 1.3). A narrow view, or one with the phone's
+   * bottom sheet over it, fits the real extents of the device instead.
+   */
   homePadding?: number;
   update(state: S, dt: number, view: ViewOpts): void;
 }

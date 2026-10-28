@@ -136,8 +136,13 @@ export function renderPartPanel(ctx: AppContext, root: HTMLElement): void {
         {
           class: `btn ${ctx.ui.isolate ? 'is-on' : ''}`,
           onclick: () => {
-            ctx.store.set({ isolate: !ctx.ui.isolate });
-            ctx.stage.frameParts([id], 1.5);
+            if (ctx.ui.isolate) {
+              // "Show all": the other parts come back, so the camera goes back to the whole device
+              ctx.overview();
+            } else {
+              ctx.store.set({ isolate: true });
+              ctx.stage.frameParts([id], 1.5);
+            }
           },
         },
         icon(ICONS.isolate, 16),
@@ -179,20 +184,30 @@ function renderOverview(ctx: AppContext, root: HTMLElement): void {
   const parts = ctx.def.parts.filter((p) => p.scene === scene);
   fill(
     root,
-    overview ? h('h2', { class: 'panel-title' }, tr(overview.title)) : null,
-    // a blank line in the text starts a new paragraph
-    ...(overview ? paragraphs(tr(overview.text), 'lead') : []),
-    overview?.actions?.length
+    // the title, the text (a blank line starts a new paragraph) and the shortcuts: on a phone the shortcuts come
+    // first, so the first button is not below the fold of the bottom sheet
+    overview
       ? h(
           'div',
-          { class: 'actions' },
-          ...overview.actions.map((a) =>
-            h(
-              'button',
-              { class: a.primary ? 'btn btn--primary' : 'btn', onclick: () => ctx.gotoScene(a.scene) },
-              tr(a.label),
-            ),
-          ),
+          { class: 'overview' },
+          h('h2', { class: 'panel-title' }, tr(overview.title)),
+          ...paragraphs(tr(overview.text), 'lead'),
+          overview.actions?.length
+            ? h(
+                'div',
+                { class: 'actions' },
+                ...overview.actions.map((a) =>
+                  h(
+                    'button',
+                    {
+                      class: a.primary ? 'btn btn--primary' : 'btn',
+                      onclick: () => (a.mode ? ctx.setMode(a.mode) : ctx.gotoScene(a.scene)),
+                    },
+                    tr(a.label),
+                  ),
+                ),
+              )
+            : null,
         )
       : null,
     h('h3', { class: 'section-title' }, t('partsInScene'), h('span', { class: 'count' }, String(parts.length))),

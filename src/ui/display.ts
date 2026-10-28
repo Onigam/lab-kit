@@ -38,6 +38,8 @@ export class DisplayController {
   private stepKey = '';
   private stepStart = 0;
   private time = 0;
+  private lastExplodeUi = 0;
+  private refitAt = 0;
 
   constructor(
     private def: AnyLab,
@@ -60,6 +62,7 @@ export class DisplayController {
       }
     };
 
+    this.stage.explodeTarget = guide ? 0 : ui.explode;
     if (guide) {
       const step = Math.min(ui.step, guide.length - 1);
       const key = `${ui.mode}:${step}`;
@@ -102,6 +105,15 @@ export class DisplayController {
         this.stage.refreshOutline();
       }
       this.explode = damp(this.explode, ui.explode, 6, dt);
+      // the overview follows the explode slider: once it stops moving, frame the device as it is now
+      if (ui.explode !== this.lastExplodeUi) {
+        this.lastExplodeUi = ui.explode;
+        this.refitAt = this.time + 0.35;
+      }
+      if (this.refitAt && this.time > this.refitAt) {
+        this.refitAt = 0;
+        this.stage.refitOverview();
+      }
       const xrayShell = this.def.scenes.find((sc) => sc.id === mod.id)?.xrayShell;
       for (const id of reg.ids()) {
         reg.setFactor(id, this.explode);

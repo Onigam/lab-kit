@@ -50,6 +50,35 @@ automatically. See `src/ui/lab.ts` for the full contract.
 A guide plays in one world by default; a step may name another with `GuideStep.scene`, and the app follows the step
 into that world (the Pelton-style build of a device in one world, then its fitting in another).
 
+A heavy world can be built at its first visit instead of at start-up: `module: lazyModule('valve', () => createValveScene())`
+(from `@onigam/lab-kit/three`) is a `SceneModule` for the types, so nothing that reads `scene.module` changes; the kit builds
+the world when the visitor goes there (or when something reads it).
+`SceneDef.overview.actions` open another world (`{ label, scene }`) or another mode (`{ label, mode }`); on a phone they
+come before the text of the overview, so the first button is not below the fold of the bottom sheet.
+
+### What the frame does on its own
+
+- **Phone** (up to 760 px wide): the mode rail is one row (the current mode with its name, the others as icons), the
+  toolbar rides on the top edge of the bottom sheet and scrolls sideways, the sheet is opaque and can be dragged by its grip
+  (a tap still toggles it), the drawings viewer sits above the sheet. Every row that scrolls fades at the edge where it goes
+  on. A short screen (up to 500 px high, a phone on its side) puts the toolbar in one row at the top of the view.
+- **Framing**: `Stage.setViewInsets({ top, bottom, … })` tells the stage how much of the 3D view the interface covers; the
+  frame sets it from the bottom sheet and the toolbar. `frameAll`, `frameBox`, `frameParts` fit the subject in the rest and
+  `camera.setViewOffset` centres the projection on it. The last framing is played again on resize, rotation and when the sheet
+  opens or closes, unless the visitor has taken the camera. The overview follows the explode slider (it frames the device as
+  it will be) and, in a narrow view, fits the real extents of the device instead of its bounding sphere;
+  `SceneModule.homePadding` still tunes the wide view.
+- **Navigation**: the wheel and the pinch zoom towards the pointer (`zoomToCursor`). A drag with the main button (or one
+  finger) that starts on a solid part turns the camera around the point that was pressed: that point stays under the pointer
+  and the view does not jump, instead of the part sweeping across the screen around a distant target. A drag that starts on
+  nothing turns around the point the camera looks at, as before; right button, two fingers, wheel and pinch are unchanged, a
+  press that moves 3 px or less is still a click. `Stage.setPivot(point | null)` sets the point a drag on nothing turns around
+  (any framing, such as `frameParts` when a part is selected from the panel, puts it back on the target of the camera).
+- **Guides**: changing the world by hand during a guide goes to the nearest step that plays in that world.
+- **No WebGL**: `mountLab` shows a message (French and English) and returns `null`.
+- **Contrast**: the text greys and accents reach 4.5:1 (`--ink-3`, `--water-ink`, `--copper-ink`, `--leaf-ink`); the fills
+  keep their hues (`--ink-4` is the old `--ink-3`).
+
 The kit targets bundlers (Vite): the emitted modules use extensionless relative imports.
 
 **Not implemented yet:** several versions of a machine in one lab (a lab has one version for now; a version switch will be
@@ -88,6 +117,14 @@ lab ait le même aspect et le même comportement.
   l'application suit l'étape dans ce monde.
 - **`sim/*`** : petites fonctions de physique (hydraulique, électrique).
 - **`styles.css`** : le cadre graphique, identique pour tous les labs, que l'on ne restyle pas.
+
+Le cadre se débrouille seul : sur téléphone le rail des modes tient sur une ligne, la barre d'outils se pose sur le bord du
+volet du bas (qui se tire du doigt par sa poignée) et défile avec un dégradé là où elle continue ; le sujet 3D est cadré
+dans la partie que le volet et la barre d'outils ne cachent pas (`Stage.setViewInsets`), et recadré à la rotation, au
+redimensionnement et à l'ouverture du volet ; « Vue d'ensemble » suit le curseur d'éclaté ; la molette et le pincement zooment
+vers le pointeur, et un glissement qui démarre sur une pièce fait tourner la caméra autour du point saisi (il reste sous le doigt,
+sans saut de vue ; `Stage.setPivot` fixe le point de rotation d'un glissement sur le vide) ; sans WebGL, `mountLab` affiche
+un message bilingue et renvoie `null`. Un monde lourd peut être construit à la première visite (`module: lazyModule('id', () => créerMonde())`), et les raccourcis d'une vue d'ensemble peuvent ouvrir un mode (`{ label, mode }`).
 
 Un lab s'installe par dépendance Git épinglée sur un tag (`git+https://github.com/Onigam/lab-kit.git#v0.1.0`), avec
 `three` en dépendance « pair ». `main` ne contient jamais `dist/` : `npm run release` construit `dist/`, le commit sur un

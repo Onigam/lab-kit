@@ -111,6 +111,15 @@ const COMMON = {
     'Drag: orbit · right-click / two fingers: pan · wheel / pinch: zoom · click: select',
   ],
   menu: ['Menu', 'Menu'],
+  webglTitle: ['Ce navigateur ne peut pas afficher la 3D', 'This browser cannot show the 3D view'],
+  webglBody: [
+    'Le labo dessine ses maquettes avec WebGL, que ce navigateur ou cet appareil n’offre pas (ou plus : GPU bloqué, mode économie d’énergie, navigateur trop ancien).',
+    'The lab draws its models with WebGL, which this browser or device does not offer (or no longer: blocked GPU, power-saving mode, browser too old).',
+  ],
+  webglHelp: [
+    'Essayez une version récente de Chrome, Firefox, Safari ou Edge, vérifiez que l’accélération matérielle est activée, ou ouvrez cette page sur un autre appareil.',
+    'Try a recent version of Chrome, Firefox, Safari or Edge, check that hardware acceleration is on, or open this page on another device.',
+  ],
 } as const satisfies Record<string, readonly [string, string]>;
 
 export type CommonKey = keyof typeof COMMON;

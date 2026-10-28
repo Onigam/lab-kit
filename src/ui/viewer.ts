@@ -96,10 +96,12 @@ export class DrawingViewer {
     const r = this.stage.getBoundingClientRect();
     if (!r.width || !r.height) return;
     const pad = 16;
-    const w = Math.min(r.width - pad * 2, (r.height - pad * 2 - 44) * PAPER_RATIO);
+    // the bar of buttons sits at the bottom (two rows on a narrow phone): the sheet is fitted above it
+    const bar = Math.max(44, this.bar.offsetHeight);
+    const w = Math.min(r.width - pad * 2, (r.height - pad * 2 - bar) * PAPER_RATIO);
     this.base = { w, h: w / PAPER_RATIO };
     this.zoom = 1;
-    this.pan = { x: (r.width - w) / 2, y: Math.max(pad, (r.height - 44 - this.base.h) / 2) };
+    this.pan = { x: (r.width - w) / 2, y: Math.max(pad, (r.height - bar - this.base.h) / 2) };
     this.apply();
   }
 

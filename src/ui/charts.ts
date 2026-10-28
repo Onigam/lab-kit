@@ -41,11 +41,23 @@ function setupCanvas(canvas: HTMLCanvasElement, w: number, hgt: number): CanvasR
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
   canvas.width = Math.round(w * dpr);
   canvas.height = Math.round(hgt * dpr);
-  canvas.style.width = `${w}px`;
+  // the width follows the container (the stylesheet says 100%), so a narrower panel narrows the chart too
   canvas.style.height = `${hgt}px`;
   const ctx = canvas.getContext('2d')!;
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   return ctx;
+}
+
+/** Draw a chart again when its container changes width (a panel dragged narrower, a rotation, a resized window). */
+function redrawOnResize(el: HTMLElement, draw: () => void): void {
+  let width = 0;
+  new ResizeObserver(() => {
+    const w = el.clientWidth;
+    if (w > 0 && Math.abs(w - width) > 0.5) {
+      width = w;
+      draw();
+    }
+  }).observe(el);
 }
 
 function niceMax(v: number): number {
@@ -81,6 +93,7 @@ export class LineChart {
       this.hover = null;
       this.draw();
     });
+    redrawOnResize(this.el, () => this.draw());
   }
 
   setData(xs: number[], ys: Record<string, number[]>): void {
@@ -273,6 +286,7 @@ export class CurveChart {
   ) {
     this.canvas = h('canvas', { class: 'chart__canvas', role: 'img' });
     this.el = h('div', { class: 'chart' }, this.canvas);
+    redrawOnResize(this.el, () => this.draw());
   }
 
   set(data: [number, number][], point: [number, number]): void {

@@ -7,5 +7,6 @@ export * from './lab';
 export * from './mount';
 export * from './panel-size';
 export * from './state';
+export * from './unsupported';
 export * from './viewer';
 export * from './widgets';

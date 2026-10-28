@@ -3,6 +3,7 @@ import type { DrawingSheet } from '../drawings';
 import type { L } from '../i18n';
 import type { SceneModule, ViewOpts } from '../three';
 import type { AppContext } from './context';
+import type { Mode } from './state';
 
 // What a lab provides to the kit: its simulation, 3D worlds, content and a few hooks. The kit
 // supplies everything else (layout, toolbar, panels, plans viewer) so every lab looks and
@@ -21,15 +22,24 @@ export interface LabSim {
   applyScenario?(id: string): void;
 }
 
+/** A shortcut of a scene overview: it opens another world (`scene`) or another mode of the application (`mode`). */
+export type OverviewAction = { label: L; primary?: boolean } & (
+  { scene: string; mode?: undefined } | { mode: Mode; scene?: undefined }
+);
+
 /** One 3D world of the lab (landscape, device, power room…). */
 export interface SceneDef {
   id: string;
   /** Name in the scene switch of the top bar. */
   label: L;
+  /** The world. Made with `lazyModule(id, make)`, it is built at the first visit instead of at start-up. */
   module: SceneModule;
   /** Text and shortcuts of the side panel while nothing is selected in this world. */
-  /** `text` may hold several paragraphs separated by a blank line. */
-  overview?: { title: L; text: L; actions?: { label: L; scene: string; primary?: boolean }[] };
+  /**
+   * `text` may hold several paragraphs separated by a blank line. On a phone the `actions` come before the text, so
+   * the first button is not below the fold of the bottom sheet.
+   */
+  overview?: { title: L; text: L; actions?: OverviewAction[] };
   /** Show the section tool in this world (default: yes). */
   cutaway?: boolean;
   /** Show the slow-motion tool in this world (default: yes). */
