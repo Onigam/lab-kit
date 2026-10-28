@@ -1,0 +1,2437 @@
+/* Lab frame: "drafting paper" interface inspired by technical manuals. Shared by every lab. */
+
+:root {
+  --paper: #f3ecdf;
+  --paper-2: #ebe2d0;
+  --card: #fbf8f2;
+  --ink: #1d2b3a;
+  --ink-2: #4f5d6d;
+  /* text greys and accents that carry text reach 4.5:1 on paper, paper-2 and card; the fills keep the original hues */
+  --ink-3: #586573; /* was #8592a0 (2.7:1 on paper) */
+  --ink-4: #8592a0; /* the former --ink-3, for decorative marks that carry no text */
+  --line: rgba(29, 43, 58, 0.14);
+  --line-2: rgba(29, 43, 58, 0.26);
+  --water: #2a7fb8;
+  --water-soft: #d7e9f4;
+  --sun: #c99700;
+  --violet: #6b4fd8;
+  --violet-soft: #ebe6fb;
+  --copper: #c4692c;
+  --copper-soft: #f6e4d6;
+  --leaf: #3f8f5a;
+  --water-ink: #2470a1; /* --water as text (was #2a7fb8, 3.7:1 on paper) */
+  --copper-ink: #a05524; /* --copper as text (was #c4692c, 3.3:1 on paper) */
+  --copper-deep: #b05e27; /* --copper behind white text (3.9:1 -> 4.6:1) */
+  --leaf-ink: #35784c; /* --leaf as text (was 3.4:1 on paper) */
+  --alarm: #c8352b;
+  --alarm-soft: #f8dfdc;
+  --ok: #2c774b;
+  --radius: 12px;
+  --radius-s: 8px;
+  --shadow: 0 1px 0 rgba(29, 43, 58, 0.06), 0 8px 24px -12px rgba(29, 43, 58, 0.25);
+  --font: 'Space Grotesk', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  --top-h: 64px;
+  --strip-h: 58px;
+  --rail-w: 78px;
+  --panel-w: 400px;
+  color-scheme: light;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: 15px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+
+button,
+input,
+select {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+a {
+  color: var(--water-ink);
+}
+
+:focus-visible {
+  outline: 2px solid var(--copper);
+  outline-offset: 2px;
+}
+
+#app {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  /* the panel width can be dragged; it never eats more than the view keeps (panel-size.ts) */
+  grid-template-columns: var(--rail-w) minmax(0, 1fr) min(var(--panel-w), calc(100vw - var(--rail-w) - 320px));
+  grid-template-rows: var(--top-h) minmax(0, 1fr) var(--strip-h);
+  grid-template-areas:
+    'top top top'
+    'rail view panel'
+    'strip strip strip';
+  background:
+    linear-gradient(var(--line) 1px, transparent 1px) 0 0 / 24px 24px,
+    linear-gradient(90deg, var(--line) 1px, transparent 1px) 0 0 / 24px 24px,
+    var(--paper);
+}
+
+/* ------------------------------------------------------------- top bar */
+
+.topbar {
+  grid-area: top;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--line-2);
+  background: color-mix(in srgb, var(--paper) 92%, transparent);
+  backdrop-filter: blur(6px);
+  z-index: 5;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.brand h1 {
+  margin: 0;
+  font-size: 22px;
+  letter-spacing: 0.18em;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.brand p {
+  margin: 4px 0 0;
+  font-size: 11px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+
+.topbar__right {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.segmented {
+  display: inline-flex;
+  padding: 3px;
+  gap: 2px;
+  border: 1px solid var(--line-2);
+  border-radius: 999px;
+  background: var(--card);
+}
+
+.segmented button {
+  border: 0;
+  background: transparent;
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+
+.segmented button.is-active {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.segmented--tiny button {
+  padding: 3px 8px;
+  font-family: var(--mono);
+  font-size: 11px;
+}
+
+.scene-switch {
+  margin-left: 12px;
+}
+
+.progress {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border: 1px solid var(--line-2);
+  border-radius: 10px;
+  background: var(--card);
+  font-size: 12px;
+  overflow: hidden;
+}
+
+.progress b {
+  font-family: var(--mono);
+}
+
+.progress i {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 3px;
+  width: var(--p);
+  background: var(--leaf);
+}
+
+/* ------------------------------------------------------------- rail */
+
+.rail {
+  grid-area: rail;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 8px;
+  border-right: 1px solid var(--line-2);
+  background: color-mix(in srgb, var(--paper-2) 80%, transparent);
+  z-index: 4;
+  overflow-y: auto;
+}
+
+/* the row of modes: transparent to the layout on a desktop, the scroller on a phone */
+.rail__scroll {
+  display: contents;
+}
+
+.rail__btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 9px 2px 7px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--ink-2);
+  font-size: 10.5px;
+  letter-spacing: 0.02em;
+  line-height: 1.15;
+  text-align: center;
+}
+
+.rail__btn:hover {
+  background: var(--card);
+  color: var(--ink);
+}
+
+.rail__btn.is-active {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+/* ------------------------------------------------------------- viewport */
+
+#viewport {
+  grid-area: view;
+  position: relative;
+  overflow: hidden;
+  min-width: 0;
+}
+
+#viewport canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+}
+
+.label-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  /* own stacking context: CSS2DRenderer gives each label a z-index by depth, which would
+     otherwise put labels above the panel and the toolbar */
+  z-index: 1;
+}
+
+.hotspot {
+  pointer-events: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  transform: translateX(-7px);
+}
+
+.hotspot__dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--water);
+  box-shadow:
+    0 0 0 3px rgba(251, 248, 242, 0.9),
+    0 0 0 6px rgba(42, 127, 184, 0.18);
+  flex: none;
+  animation: pulse 2.6s ease-in-out infinite;
+}
+
+.hotspot__text {
+  padding: 3px 8px;
+  border: 1px solid var(--line-2);
+  border-radius: 6px;
+  background: rgba(251, 248, 242, 0.94);
+  font-family: var(--mono);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink);
+  white-space: nowrap;
+  box-shadow: 0 4px 12px -6px rgba(29, 43, 58, 0.35);
+}
+
+.hotspot:hover .hotspot__text,
+.hotspot.is-selected .hotspot__text {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.hotspot.is-selected .hotspot__dot {
+  background: var(--copper);
+}
+
+.hotspot--goto .hotspot__dot {
+  background: var(--copper);
+}
+
+.hotspot--goto .hotspot__text::after {
+  content: ' →';
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 3px rgba(251, 248, 242, 0.9),
+      0 0 0 6px rgba(42, 127, 184, 0.18);
+  }
+  50% {
+    box-shadow:
+      0 0 0 3px rgba(251, 248, 242, 0.9),
+      0 0 0 10px rgba(42, 127, 184, 0.05);
+  }
+}
+
+.toolbar {
+  position: absolute;
+  left: 50%;
+  bottom: 14px;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px;
+  border: 1px solid var(--line-2);
+  border-radius: 14px;
+  background: rgba(251, 248, 242, 0.92);
+  backdrop-filter: blur(6px);
+  box-shadow: var(--shadow);
+  z-index: 3;
+  max-width: calc(100% - 24px);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.tool {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 11px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: transparent;
+  font-size: 12.5px;
+  font-weight: 500;
+  white-space: nowrap;
+  color: var(--ink-2);
+}
+
+.tool:hover {
+  background: var(--paper);
+  color: var(--ink);
+}
+
+.tool.is-on {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.tool--range {
+  gap: 6px;
+  padding: 3px 8px;
+  border: 1px solid var(--line);
+  color: var(--ink);
+}
+
+.tool--range input {
+  width: 110px;
+  accent-color: var(--copper);
+}
+
+.tool__mini {
+  border: 0;
+  background: transparent;
+  font-size: 10px;
+  color: var(--ink-3);
+  padding: 2px 4px;
+}
+
+.peek {
+  position: absolute;
+  left: 14px;
+  top: 14px;
+  width: min(320px, calc(100% - 28px));
+  padding: 12px 14px;
+  border: 1px solid var(--line-2);
+  border-radius: var(--radius);
+  background: var(--card);
+  box-shadow: var(--shadow);
+  z-index: 3;
+  transform: translateY(-8px);
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    opacity 0.2s,
+    transform 0.2s;
+}
+
+.peek.is-visible {
+  opacity: 1;
+  transform: none;
+  pointer-events: auto;
+}
+
+.peek p {
+  margin: 4px 0 8px;
+  font-size: 13px;
+  color: var(--ink-2);
+}
+
+/* ------------------------------------------------------------- panel */
+
+.panel {
+  grid-area: panel;
+  position: relative;
+  border-left: 1px solid var(--line-2);
+  background: color-mix(in srgb, var(--card) 94%, transparent);
+  z-index: 4;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.panel__grip {
+  display: none;
+}
+
+.panel__body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 18px 20px 28px;
+  scrollbar-width: thin;
+}
+
+.panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.panel-title {
+  margin: 6px 0 6px;
+  font-size: 24px;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+}
+
+.lead {
+  margin: 0 0 14px;
+  color: var(--ink-2);
+}
+
+.eyebrow {
+  margin: 18px 0 8px;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.eyebrow--accent {
+  margin-top: 0;
+  color: var(--copper-ink);
+}
+
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 20px 0 8px;
+  font-size: 14px;
+  letter-spacing: 0.02em;
+}
+
+.section-title .count {
+  font-family: var(--mono);
+  font-size: 11px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--paper-2);
+}
+
+.hint {
+  font-size: 12.5px;
+  color: var(--ink-3);
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.chip {
+  padding: 2px 9px;
+  border-radius: 999px;
+  border: 1px solid var(--line-2);
+  font-family: var(--mono);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+  background: var(--card);
+}
+
+.chip--hydraulic {
+  color: var(--water-ink);
+  border-color: color-mix(in srgb, var(--water) 40%, transparent);
+}
+
+.chip--mechanical {
+  color: var(--ink);
+}
+
+.chip--electrical {
+  color: var(--copper-ink);
+  border-color: color-mix(in srgb, var(--copper) 40%, transparent);
+}
+
+.chip--site {
+  color: var(--leaf-ink);
+  border-color: color-mix(in srgb, var(--leaf) 40%, transparent);
+}
+
+/* tabs wrap instead of scrolling (no scrollbar over the labels) and stay at the top while
+   reading a long sheet */
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 2px;
+  border-bottom: 1px solid var(--line-2);
+  margin: 4px 0 12px;
+  position: sticky;
+  top: -18px;
+  z-index: 2;
+  background: var(--card);
+}
+
+.tab {
+  border: 0;
+  background: transparent;
+  padding: 8px 10px;
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  white-space: nowrap;
+}
+
+.tab.is-active {
+  color: var(--ink);
+  border-bottom-color: var(--copper);
+}
+
+.tab-body p {
+  margin: 0 0 12px;
+}
+
+.specs {
+  display: grid;
+  grid-template-columns: minmax(110px, 40%) 1fr;
+  margin: 0;
+  border-top: 1px solid var(--line);
+}
+
+.specs dt,
+.specs dd {
+  margin: 0;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 13.5px;
+}
+
+.specs dt {
+  color: var(--ink-3);
+  padding-right: 10px;
+}
+
+.specs dd {
+  font-family: var(--mono);
+  font-size: 12.5px;
+}
+
+.callout {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  margin: 10px 0;
+  padding: 10px 12px;
+  border-radius: var(--radius-s);
+  border: 1px solid var(--line);
+  font-size: 13.5px;
+  background: var(--paper);
+}
+
+.callout b {
+  flex: none;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding-top: 2px;
+}
+
+.callout--tip {
+  background: var(--water-soft);
+  border-color: color-mix(in srgb, var(--water) 25%, transparent);
+}
+
+.callout--warn {
+  background: var(--alarm-soft);
+  border-color: color-mix(in srgb, var(--alarm) 25%, transparent);
+  color: #6d1e18;
+}
+
+.callout--warn svg {
+  flex: none;
+  margin-top: 2px;
+}
+
+.callout--design {
+  flex-direction: column;
+  gap: 4px;
+  background: var(--violet-soft);
+  border-color: color-mix(in srgb, var(--violet) 30%, transparent);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 14px 0 4px;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border: 1px solid var(--line-2);
+  border-radius: 10px;
+  background: var(--card);
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: none;
+  color: var(--ink);
+}
+
+.btn:hover {
+  border-color: var(--ink);
+}
+
+.btn.is-on,
+.btn--primary {
+  background: var(--ink);
+  color: var(--paper);
+  border-color: var(--ink);
+}
+
+.btn--ghost {
+  background: transparent;
+}
+
+.btn--small {
+  padding: 4px 9px;
+  font-size: 12px;
+}
+
+.btn--danger {
+  color: var(--alarm);
+  border-color: color-mix(in srgb, var(--alarm) 45%, transparent);
+}
+
+.icon-btn {
+  display: inline-grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--line-2);
+  border-radius: 10px;
+  background: var(--card);
+}
+
+.icon-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.icon-btn--accent {
+  background: var(--copper);
+  border-color: var(--copper);
+  color: #fff;
+}
+
+.part-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 8px 0;
+}
+
+.part-chip {
+  padding: 5px 10px;
+  border: 1px solid var(--line-2);
+  border-radius: 8px;
+  background: var(--card);
+  font-size: 12.5px;
+}
+
+.part-chip:hover {
+  border-color: var(--ink);
+}
+
+.part-chip--hydraulic {
+  box-shadow: inset 3px 0 0 var(--water);
+}
+
+.part-chip--electrical {
+  box-shadow: inset 3px 0 0 var(--copper);
+}
+
+.part-chip--mechanical {
+  box-shadow: inset 3px 0 0 var(--ink-2);
+}
+
+.part-chip--structure {
+  box-shadow: inset 3px 0 0 var(--ink-4);
+}
+
+.part-chip--site {
+  box-shadow: inset 3px 0 0 var(--leaf);
+}
+
+/* ------------------------------------------------------------- guide */
+
+.counters {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin: 10px 0 12px;
+}
+
+.counter {
+  padding: 8px 12px;
+  border: 1px solid var(--line-2);
+  border-radius: var(--radius-s);
+  background: var(--paper);
+}
+
+.counter span {
+  display: block;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.counter b {
+  font-family: var(--mono);
+  font-size: 22px;
+  color: var(--copper-ink);
+}
+
+.counter small {
+  font-family: var(--mono);
+  color: var(--ink-3);
+}
+
+.step-card {
+  padding: 12px 14px;
+  border: 1px solid var(--line-2);
+  border-radius: var(--radius);
+  background: var(--card);
+  box-shadow: var(--shadow);
+}
+
+.step-card .eyebrow {
+  margin-top: 0;
+  color: var(--copper-ink);
+}
+
+.step-card p {
+  margin: 0 0 10px;
+}
+
+.meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  margin: 8px 0;
+}
+
+.meta span {
+  display: block;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.meta b {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.transport {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 14px 0 6px;
+}
+
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--ink-2);
+  cursor: pointer;
+}
+
+.toggle input {
+  accent-color: var(--copper);
+  width: 16px;
+  height: 16px;
+}
+
+.timeline input[type='range'] {
+  width: 100%;
+  accent-color: var(--copper);
+}
+
+.ticks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.tick {
+  min-width: 26px;
+  padding: 2px 0;
+  border: 1px solid var(--line-2);
+  border-radius: 6px;
+  background: var(--card);
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--ink-3);
+}
+
+.tick.is-done {
+  background: var(--paper-2);
+  color: var(--ink-2);
+}
+
+.tick.is-active {
+  background: var(--copper-deep);
+  border-color: var(--copper-deep);
+  color: #fff;
+}
+
+/* ------------------------------------------------------------- sim */
+
+.sim-top {
+  display: flex;
+  gap: 8px;
+}
+
+.sim-top select,
+.field select {
+  flex: 1;
+  min-width: 0;
+  padding: 7px 10px;
+  border: 1px solid var(--line-2);
+  border-radius: 10px;
+  background: var(--card);
+}
+
+.readouts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.readout {
+  min-width: 0;
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--paper);
+}
+
+.readout span {
+  display: block;
+  font-size: 10.5px;
+  color: var(--ink-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.readout b {
+  font-family: var(--mono);
+  font-size: 15px;
+}
+
+.readout small {
+  font-size: 10px;
+  color: var(--ink-3);
+  font-weight: 400;
+}
+
+.losses .loss-bar {
+  display: flex;
+  height: 16px;
+  gap: 2px;
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.losses .loss-bar span:first-child {
+  border-radius: 4px 0 0 4px;
+}
+
+.loss-legend {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3px 10px;
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--ink-2);
+}
+
+.loss-legend i {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+  margin-right: 5px;
+}
+
+.loss-legend b {
+  font-family: var(--mono);
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.sim-section {
+  margin-top: 14px;
+  border: 1px solid var(--line-2);
+  border-radius: var(--radius);
+  background: var(--card);
+}
+
+.sim-section summary {
+  padding: 9px 12px;
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.sim-grid {
+  display: grid;
+  gap: 10px;
+  padding: 2px 12px 12px;
+}
+
+.field {
+  display: grid;
+  gap: 3px;
+  font-size: 13px;
+}
+
+.field--row {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+}
+
+.field--row > .field {
+  flex: 1;
+}
+
+.field__label {
+  display: flex;
+  justify-content: space-between;
+  color: var(--ink-2);
+}
+
+.field output {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--ink);
+}
+
+.field input[type='range'] {
+  width: 100%;
+  accent-color: var(--water);
+}
+
+.chart {
+  position: relative;
+  min-width: 0; /* a grid item may shrink below the width its canvas had at a wider layout */
+  margin-bottom: 6px;
+}
+
+.chart__canvas {
+  display: block;
+  width: 100%;
+}
+
+.chart__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin-bottom: 4px;
+  font-size: 12px;
+  color: var(--ink-2);
+}
+
+.chart__key i {
+  display: inline-block;
+  width: 14px;
+  height: 2px;
+  margin-right: 5px;
+  vertical-align: middle;
+  border-radius: 2px;
+}
+
+.chart__tip {
+  display: none;
+  position: absolute;
+  top: 4px;
+  min-width: 120px;
+  padding: 6px 8px;
+  border: 1px solid var(--line-2);
+  border-radius: 8px;
+  background: var(--card);
+  box-shadow: var(--shadow);
+  font-size: 11.5px;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.chart__tip-x {
+  font-family: var(--mono);
+  color: var(--ink-3);
+  margin-bottom: 2px;
+}
+
+.chart__tip-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.chart__tip-row i {
+  width: 10px;
+  height: 2px;
+  border-radius: 2px;
+}
+
+.chart__tip-row b {
+  font-family: var(--mono);
+}
+
+.chart__tip-row span {
+  color: var(--ink-3);
+}
+
+/* ------------------------------------------------------------- lessons */
+
+.lesson-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.lesson-card {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--line-2);
+  border-radius: var(--radius);
+  background: var(--card);
+  text-align: left;
+}
+
+.lesson-card:hover {
+  border-color: var(--ink);
+}
+
+.lesson-card.is-done {
+  background: var(--paper);
+}
+
+.lesson-card.is-done svg {
+  color: var(--leaf);
+}
+
+.lesson-card__num {
+  font-family: var(--mono);
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--copper-ink);
+}
+
+.lesson-card__body {
+  flex: 1;
+  display: grid;
+}
+
+.lesson-card__body small {
+  color: var(--ink-3);
+  font-size: 12.5px;
+}
+
+.figures {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: 6px;
+  margin: 10px 0;
+}
+
+.figure {
+  padding: 8px 10px;
+  border: 1px solid var(--line-2);
+  border-radius: var(--radius-s);
+  background: var(--paper);
+}
+
+.figure b {
+  display: block;
+  font-family: var(--mono);
+  font-size: 17px;
+  color: var(--water-ink);
+}
+
+.figure span {
+  font-size: 11.5px;
+  color: var(--ink-2);
+}
+
+.formula {
+  margin: 12px 0;
+  padding: 12px 14px;
+  border-radius: var(--radius-s);
+  background: var(--ink);
+  color: #e9f1f7;
+  font-family: var(--mono);
+  font-size: 13px;
+  white-space: pre-wrap;
+}
+
+.quiz__item {
+  margin-bottom: 14px;
+}
+
+.quiz__q {
+  margin: 0 0 6px;
+  font-weight: 500;
+}
+
+.quiz__choices {
+  display: grid;
+  gap: 5px;
+}
+
+.quiz__choice {
+  text-align: left;
+  padding: 7px 10px;
+  border: 1px solid var(--line-2);
+  border-radius: 8px;
+  background: var(--card);
+  font-size: 13.5px;
+}
+
+.quiz__choice.is-right {
+  border-color: var(--ok);
+  background: #e2f1e7;
+}
+
+.quiz__choice.is-wrong {
+  border-color: var(--alarm);
+  background: var(--alarm-soft);
+}
+
+.quiz__feedback {
+  margin: 6px 0 0;
+  font-size: 13px;
+  color: var(--ink-2);
+}
+
+/* ------------------------------------------------------------- catalogue */
+
+.search {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--line-2);
+  border-radius: 10px;
+  background: var(--card);
+  margin-bottom: 8px;
+}
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 6px;
+}
+
+.filter {
+  padding: 3px 9px;
+  border: 1px solid var(--line-2);
+  border-radius: 999px;
+  background: transparent;
+  font-size: 12px;
+  color: var(--ink-2);
+}
+
+.filter.is-active {
+  background: var(--ink);
+  color: var(--paper);
+  border-color: var(--ink);
+}
+
+.catalogue {
+  display: grid;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.cat-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--card);
+  text-align: left;
+}
+
+.cat-row:hover {
+  border-color: var(--ink);
+}
+
+.cat-row > i {
+  flex: none;
+  width: 4px;
+  align-self: stretch;
+  border-radius: 2px;
+  background: var(--ink-4);
+}
+
+.cat-row--hydraulic > i {
+  background: var(--water);
+}
+
+.cat-row--electrical > i {
+  background: var(--copper);
+}
+
+.cat-row--mechanical > i {
+  background: var(--ink-2);
+}
+
+.cat-row--site > i {
+  background: var(--leaf);
+}
+
+.cat-row > span {
+  flex: 1;
+  display: grid;
+}
+
+.cat-row small {
+  color: var(--ink-3);
+  font-size: 12px;
+}
+
+.chapters,
+.links {
+  padding-left: 18px;
+  font-size: 13.5px;
+}
+
+.chapters a {
+  font-family: var(--mono);
+}
+
+/* ------------------------------------------------------------- live strip */
+
+.strip {
+  grid-area: strip;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 0 14px;
+  border-top: 1px solid var(--line-2);
+  background: color-mix(in srgb, var(--paper) 94%, transparent);
+  z-index: 5;
+  overflow: hidden;
+}
+
+.strip__clock {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: none;
+}
+
+.clock b {
+  display: block;
+  font-family: var(--mono);
+  font-size: 16px;
+  line-height: 1.1;
+}
+
+.clock small {
+  font-size: 11px;
+  color: var(--ink-3);
+}
+
+.strip__values {
+  display: flex;
+  gap: 4px;
+  flex: none;
+}
+
+.live {
+  padding: 3px 10px;
+  border-left: 1px solid var(--line);
+  min-width: 84px;
+}
+
+.live span {
+  display: block;
+  font-size: 10.5px;
+  color: var(--ink-3);
+  white-space: nowrap;
+}
+
+.live b {
+  font-family: var(--mono);
+  font-size: 15px;
+}
+
+.live small {
+  font-size: 10px;
+  color: var(--ink-3);
+  font-weight: 400;
+}
+
+.live--water b {
+  color: var(--water-ink);
+}
+
+.live--hydro span::before,
+.live--pv span::before,
+.live--load span::before,
+.live--dump span::before {
+  content: '';
+  display: inline-block;
+  width: 10px;
+  height: 2px;
+  margin-right: 5px;
+  vertical-align: middle;
+  border-radius: 2px;
+}
+
+.live--hydro span::before {
+  background: var(--water);
+}
+
+.live--pv span::before {
+  background: var(--sun);
+}
+
+.live--load span::before {
+  background: var(--violet);
+}
+
+.live--dump span::before {
+  background: var(--copper);
+}
+
+.strip__alarms {
+  display: flex;
+  gap: 6px;
+  margin-left: auto;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  flex: 0 1 auto;
+  min-width: 0;
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent 0,
+    #000 var(--fade-start, 0px),
+    #000 calc(100% - var(--fade-end, 0px)),
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to right,
+    transparent 0,
+    #000 var(--fade-start, 0px),
+    #000 calc(100% - var(--fade-end, 0px)),
+    transparent 100%
+  );
+}
+
+.strip__alarms > * {
+  flex: none;
+}
+
+.alarm {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 9px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--sun) 60%, transparent);
+  background: #fbf1cf;
+  font-size: 12px;
+  white-space: nowrap;
+  color: #6a4f00;
+}
+
+.alarm--severe {
+  border-color: var(--alarm);
+  background: var(--alarm-soft);
+  color: #7a1d16;
+  animation: blink 1.2s steps(2, start) infinite;
+}
+
+.alarm--ok {
+  border-color: color-mix(in srgb, var(--ok) 45%, transparent);
+  background: #e2f1e7;
+  color: var(--ok);
+}
+
+@keyframes blink {
+  50% {
+    opacity: 0.55;
+  }
+}
+
+/* ------------------------------------------------------------- responsive */
+
+@media (max-width: 1280px) {
+  :root {
+    --panel-w: 360px;
+  }
+  .strip__values .live:nth-child(n + 7) {
+    display: none;
+  }
+}
+
+@media (max-width: 1020px) {
+  .brand p,
+  .progress span {
+    display: none;
+  }
+  .strip__values .live:nth-child(n + 5) {
+    display: none;
+  }
+  /* an alarm needs room to be read whole: it takes the place of the later values */
+  .strip.has-alarm .strip__values .live:nth-child(n + 3) {
+    display: none;
+  }
+  /* two chips share the room, a long text breaks into two lines instead of being cut off */
+  .strip.has-alarm .strip__alarms {
+    flex: 1 1 0;
+  }
+  .strip.has-alarm .alarm {
+    max-width: calc((100% - 6px) / 2);
+    padding: 3px 9px;
+    font-size: 11.5px;
+    line-height: 1.15;
+    white-space: normal;
+    border-radius: 14px;
+  }
+  .strip.has-alarm .alarm:only-child {
+    max-width: 100%;
+  }
+  .strip.has-alarm .alarm svg {
+    flex: none;
+  }
+}
+
+/* up to 760 px wide, whatever the height: the strip and the simulation readouts */
+@media (max-width: 760px) {
+  .tool--range input {
+    width: 70px;
+  }
+  .strip {
+    gap: 8px;
+    padding: 0 10px;
+  }
+  .segmented--tiny {
+    display: none;
+  }
+  .readouts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 639px), (max-width: 760px) and (min-height: 501px) {
+  :root {
+    --top-h: 104px;
+    --strip-h: 52px;
+  }
+  #app {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: var(--top-h) 56px minmax(0, 1fr) var(--strip-h);
+    grid-template-areas: 'top' 'rail' 'view' 'strip';
+  }
+  .topbar {
+    flex-wrap: wrap;
+    padding: 8px 16px;
+    gap: 8px;
+  }
+  .brand h1 {
+    font-size: 18px;
+  }
+  /* the title takes what the language switch leaves on the first row (cut with an ellipsis) */
+  .brand {
+    flex: 1 1 0;
+  }
+  .scene-switch {
+    order: 3;
+    margin: 0;
+    width: 100%;
+    justify-content: space-between;
+  }
+  .scene-switch button {
+    flex: 1;
+    padding: 5px 6px;
+  }
+  .topbar__right {
+    gap: 6px;
+  }
+  .progress {
+    display: none;
+  }
+  /* the modes: one row, the current one with its name, the others as icons (all eight fit; it scrolls when it must) */
+  .rail {
+    display: block;
+    border-right: 0;
+    border-bottom: 1px solid var(--line-2);
+    padding: 4px 6px;
+    overflow: hidden;
+  }
+  .rail__scroll {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    height: 100%;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .rail__btn {
+    flex: none;
+    flex-direction: row;
+    justify-content: center;
+    gap: 6px;
+    min-width: 32px;
+    min-height: 36px;
+    padding: 6px;
+    font-size: 12px;
+  }
+  .rail__btn:not(.is-active) span {
+    display: none;
+  }
+  .rail__btn svg {
+    width: 17px;
+    height: 17px;
+  }
+  /* the bottom sheet: --sheet-off is how far it is pushed down (0 open, all but its grip closed; a drag sets it) */
+  :root {
+    --sheet-h: 46vh;
+    --grip-h: 34px;
+    --sheet-rest: calc(var(--sheet-h) - var(--grip-h));
+    --sheet-off: var(--sheet-rest);
+  }
+  @supports (height: 1dvh) {
+    :root {
+      --sheet-h: 46dvh;
+    }
+  }
+  body.sheet-open {
+    --sheet-rest: 0px;
+    --sheet-off: 0px;
+  }
+  .panel {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: var(--strip-h);
+    height: var(--sheet-h);
+    border-left: 0;
+    border-top: 1px solid var(--line-2);
+    border-radius: 16px 16px 0 0;
+    /* opaque: the toolbar and the 3D labels must not show through the text */
+    background: var(--card);
+    box-shadow: 0 -10px 30px -18px rgba(29, 43, 58, 0.5);
+    transform: translateY(var(--sheet-off));
+    transition: transform 0.25s ease;
+  }
+  body.sheet-dragging .panel,
+  body.sheet-dragging .toolbar {
+    transition: none;
+  }
+  .panel__grip {
+    display: block;
+    flex: none;
+    height: var(--grip-h);
+    touch-action: none;
+    border: 0;
+    background: transparent;
+    position: relative;
+  }
+  .panel__grip::before {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 14px;
+    width: 44px;
+    height: 5px;
+    margin-left: -22px;
+    border-radius: 3px;
+    background: var(--line-2);
+  }
+  .panel__body {
+    padding: 0 16px 24px;
+  }
+  .peek {
+    top: 10px;
+  }
+}
+
+/* ------------------------------------------------------------- sizing */
+
+.sizing {
+  overflow-x: auto;
+}
+
+.sizing table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.sizing th {
+  padding: 4px 6px;
+  text-align: right;
+  font-family: var(--mono);
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  border-bottom: 1px solid var(--line-2);
+  white-space: nowrap;
+}
+
+.sizing td {
+  padding: 4px 6px;
+  text-align: right;
+  font-family: var(--mono);
+  border-bottom: 1px solid var(--line);
+  white-space: nowrap;
+}
+
+.sizing th:first-child,
+.sizing td:first-child,
+.sizing th:last-child,
+.sizing td:last-child {
+  text-align: left;
+}
+
+.sizing tbody tr {
+  cursor: pointer;
+}
+
+.sizing tbody tr:hover {
+  background: var(--paper);
+}
+
+.sizing tr.is-off td {
+  color: var(--ink-3);
+}
+
+.sizing tr.is-current {
+  background: var(--water-soft);
+  box-shadow: inset 3px 0 0 var(--water);
+}
+
+.sizing tr.is-best td b {
+  color: var(--ok);
+}
+
+.sizing .star {
+  color: var(--sun);
+}
+
+.part-chip.is-on {
+  background: var(--ink);
+  color: var(--paper);
+  border-color: var(--ink);
+}
+
+/* the tools sit in a row that is transparent to the layout on a desktop and scrolls on a phone */
+.toolbar__row {
+  display: contents;
+}
+
+/* toolbar wraps instead of scrolling on narrow viewports */
+.toolbar {
+  flex-wrap: wrap;
+  justify-content: center;
+  overflow: visible;
+  width: max-content;
+}
+
+.tool svg {
+  flex: none;
+}
+
+.brand h1 {
+  white-space: nowrap;
+}
+
+@media (max-width: 1100px) {
+  /* the tagline goes, the title stays (one line, cut with an ellipsis when the bar is full) */
+  .brand p {
+    display: none;
+  }
+}
+
+.brand > div {
+  min-width: 0;
+}
+
+.brand h1 {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* collapsible side panel (desktop) */
+.panel-toggle {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--line-2);
+  border-radius: 10px;
+  background: rgba(251, 248, 242, 0.92);
+  box-shadow: var(--shadow);
+}
+
+body.panel-closed #app {
+  grid-template-columns: var(--rail-w) minmax(0, 1fr) 0;
+}
+
+body.panel-closed .panel {
+  display: none;
+}
+
+@media (max-width: 1100px) {
+  :root {
+    --panel-w: 310px;
+  }
+  .tool {
+    padding: 6px 8px;
+    font-size: 12px;
+  }
+  .tool--range input {
+    width: 80px;
+  }
+}
+
+@media (max-width: 639px), (max-width: 760px) and (min-height: 501px) {
+  .panel-toggle {
+    display: none;
+  }
+  body.panel-closed .panel {
+    display: flex;
+  }
+}
+
+.sizing td b {
+  font-weight: 700;
+}
+
+.sizing .star {
+  margin-left: 3px;
+}
+
+@media (max-width: 639px), (max-width: 760px) and (min-height: 501px) {
+  /* the collapsed bottom sheet slides under the strip: keep the strip opaque */
+  .strip {
+    background: var(--paper);
+  }
+}
+
+@media (max-width: 900px) {
+  /* four scene buttons + version + language must fit: the lesson progress stays in the rail */
+  .progress {
+    display: none;
+  }
+  .scene-switch button {
+    padding: 6px 10px;
+  }
+}
+
+/* ------------------------------------------------------------- drawings viewer */
+
+.dv {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  display: none;
+  background:
+    linear-gradient(var(--line) 1px, transparent 1px) 0 0 / 24px 24px,
+    linear-gradient(90deg, var(--line) 1px, transparent 1px) 0 0 / 24px 24px,
+    #e7decb;
+}
+
+body.mode-plans .dv {
+  display: block;
+}
+
+body.mode-plans .toolbar,
+body.mode-plans .peek,
+body.mode-plans .label-layer {
+  display: none;
+}
+
+.dv__stage {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  cursor: grab;
+  touch-action: none;
+}
+
+.dv__stage:active {
+  cursor: grabbing;
+}
+
+.dv__svg {
+  position: absolute;
+  box-shadow: 0 10px 40px -18px rgba(29, 43, 58, 0.6);
+  user-select: none;
+}
+
+.dv__bar {
+  position: absolute;
+  left: 50%;
+  bottom: 12px;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  border: 1px solid var(--line-2);
+  border-radius: 14px;
+  background: rgba(251, 248, 242, 0.95);
+  box-shadow: var(--shadow);
+  max-width: calc(100% - 24px);
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.dv__no {
+  flex: none; /* the box grows with its text ("RP-D13 · 13/13" needs 101 px) instead of spilling out of it */
+  font-family: var(--mono);
+  font-size: 12px;
+  min-width: 92px;
+  text-align: center;
+}
+
+.dv__sep {
+  width: 1px;
+  height: 22px;
+  background: var(--line-2);
+}
+
+.dv__print {
+  position: fixed;
+  width: 0;
+  height: 0;
+  border: 0;
+  visibility: hidden;
+}
+
+.sheet-group {
+  margin-bottom: 6px;
+}
+
+.sheet-row {
+  width: 100%;
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  padding: 6px 10px;
+  margin-bottom: 3px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--card);
+  text-align: left;
+  font-size: 13px;
+}
+
+.sheet-row:hover {
+  border-color: var(--ink);
+}
+
+.sheet-row.is-active {
+  background: var(--ink);
+  color: var(--paper);
+  border-color: var(--ink);
+}
+
+.sheet-row__no {
+  font-family: var(--mono);
+  font-size: 11px;
+  opacity: 0.75;
+  white-space: nowrap;
+}
+
+.line-legend {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 4px;
+  font-size: 12.5px;
+  color: var(--ink-2);
+}
+
+.line-legend li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* the panel toggle stays reachable above the drawings viewer */
+.panel-toggle {
+  z-index: 7;
+}
+
+.dv__bar {
+  flex-wrap: nowrap;
+  gap: 4px;
+}
+
+.dv__bar .icon-btn {
+  width: 30px;
+  height: 30px;
+}
+
+.dv__no {
+  white-space: nowrap;
+}
+
+/* ------------------------------------------------------------- panel sizing (desktop) */
+
+.panel__edge {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -5px;
+  width: 10px;
+  z-index: 5;
+  cursor: col-resize;
+  touch-action: none;
+}
+
+.panel__edge::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 4px;
+  width: 2px;
+  background: transparent;
+  transition: background 0.15s;
+}
+
+.panel__edge:hover::before,
+body.panel-resizing .panel__edge::before {
+  background: var(--copper);
+}
+
+.panel__wide {
+  position: absolute;
+  top: 50%;
+  left: -7px;
+  width: 22px;
+  height: 46px;
+  margin-top: -23px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line-2);
+  border-radius: 11px;
+  background: var(--card);
+  color: var(--ink-2);
+  box-shadow: var(--shadow);
+  cursor: pointer;
+}
+
+.panel__wide:hover {
+  color: var(--ink);
+  border-color: var(--copper);
+}
+
+body.panel-resizing {
+  cursor: col-resize;
+  user-select: none;
+}
+
+@media (min-width: 761px), (max-height: 500px) and (min-width: 640px) {
+  /* reading mode: the panel takes the whole width, text kept to a readable measure */
+  body.panel-wide:not(.panel-closed) #app {
+    grid-template-columns: var(--rail-w) 0 minmax(0, 1fr);
+  }
+  body.panel-wide:not(.panel-closed) #viewport {
+    visibility: hidden;
+  }
+  body.panel-wide .panel__body {
+    padding-inline: max(20px, calc((100% - 860px) / 2));
+  }
+  body.panel-wide .panel__edge {
+    cursor: default;
+  }
+}
+
+@media (max-width: 639px), (max-width: 760px) and (min-height: 501px) {
+  .panel__edge {
+    display: none;
+  }
+  .tabs {
+    top: 0;
+  }
+}
+
+/* ------------------------------------------------------------- phone frame */
+
+@media (max-width: 639px), (max-width: 760px) and (min-height: 501px) {
+  /* the toolbar rides on the top edge of the bottom sheet (open or closed, or in the middle of a drag) and scrolls
+     sideways, with a fade where it goes on */
+  .toolbar {
+    left: 12px;
+    right: 12px;
+    bottom: calc(var(--sheet-h) - var(--sheet-off) + 10px);
+    transform: none;
+    width: auto;
+    max-width: none;
+    padding: 0;
+    overflow: hidden;
+    transition: bottom 0.25s ease;
+  }
+  .toolbar__row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  /* the drawings viewer stays above the sheet (the sheet lists the drawings) and is fitted in what is left */
+  .dv {
+    z-index: 3;
+    bottom: calc(var(--sheet-h) - var(--sheet-rest));
+  }
+  .dv__bar {
+    /* as wide as its buttons need (not the half of the view left of its centre), in two rows only when it must */
+    width: max-content;
+    max-width: calc(100% - 16px);
+    flex-wrap: wrap;
+    gap: 2px;
+    padding: 6px 4px;
+  }
+  .dv__no {
+    min-width: 0;
+    padding: 0 2px;
+    font-size: 11px;
+  }
+  .dv__sep {
+    display: none;
+  }
+
+  /* with the sheet open there is no room for the card of the selected part over the small view that is left */
+  body.sheet-open .peek {
+    display: none;
+  }
+
+  /* the overview of a world: the shortcuts come before the long text */
+  .overview {
+    display: flex;
+    flex-direction: column;
+  }
+  .overview > .panel-title {
+    order: -2;
+  }
+  .overview > .actions {
+    order: -1;
+    margin-top: 6px;
+    margin-bottom: 10px;
+  }
+}
+
+/* up to 760 px wide: the values of the strip scroll; an alarm takes the place of the values so the cause can be read whole */
+@media (max-width: 760px) {
+  .strip__values {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-mask-image: linear-gradient(
+      to right,
+      transparent 0,
+      #000 var(--fade-start, 0px),
+      #000 calc(100% - var(--fade-end, 0px)),
+      transparent 100%
+    );
+    mask-image: linear-gradient(
+      to right,
+      transparent 0,
+      #000 var(--fade-start, 0px),
+      #000 calc(100% - var(--fade-end, 0px)),
+      transparent 100%
+    );
+  }
+  .strip__values .live {
+    flex: none;
+  }
+  .strip.has-alarm .strip__values {
+    display: none;
+  }
+  /* all good: a green tick, the words stay for a screen reader */
+  .alarm--ok {
+    gap: 0;
+    padding: 5px;
+    font-size: 0;
+  }
+}
+
+/* small phones: the four worlds of the top bar must fit 288 px, in French and in English */
+@media (max-width: 380px) {
+  .topbar {
+    padding-inline: 12px;
+  }
+  .scene-switch button {
+    padding: 5px 3px;
+    font-size: 12px;
+  }
+}
+
+/* a row that scrolls and has more to show says so: a fade and an arrow at the edge where it goes on (`data-more` is set by
+   watchOverflow on the toolbar and the rail) */
+@media (max-width: 639px), (max-width: 760px) and (min-height: 501px), (max-height: 500px) {
+  :root {
+    --arrow-next: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%234f5d6d' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 5l7 7-7 7'/%3E%3C/svg%3E");
+    --arrow-prev: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%234f5d6d' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M15 5l-7 7 7 7'/%3E%3C/svg%3E");
+  }
+  .toolbar {
+    --more-bg: 251, 248, 242;
+  }
+  .rail {
+    --more-bg: 235, 226, 208;
+    position: relative;
+  }
+  .toolbar[data-more~='start']::before,
+  .toolbar[data-more~='end']::after,
+  .rail[data-more~='start']::before,
+  .rail[data-more~='end']::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 40px;
+    pointer-events: none;
+    background-repeat: no-repeat;
+    background-size:
+      14px 14px,
+      100% 100%;
+  }
+  .toolbar[data-more~='end']::after,
+  .rail[data-more~='end']::after {
+    right: 0;
+    background-position:
+      right 8px center,
+      0 0;
+    background-image:
+      var(--arrow-next), linear-gradient(to right, rgba(var(--more-bg), 0), rgba(var(--more-bg), 0.97) 62%);
+  }
+  .toolbar[data-more~='start']::before,
+  .rail[data-more~='start']::before {
+    left: 0;
+    background-position:
+      left 8px center,
+      0 0;
+    background-image:
+      var(--arrow-prev), linear-gradient(to left, rgba(var(--more-bg), 0), rgba(var(--more-bg), 0.97) 62%);
+  }
+}
+
+/* ------------------------------------------------------------- touch targets */
+
+/* 32 px at least under a finger: the boxes grow, the drawn controls keep their size */
+@media (max-width: 760px), (pointer: coarse) {
+  .hotspot {
+    min-height: 32px;
+  }
+  .tool__mini {
+    min-width: 32px;
+    min-height: 32px;
+  }
+  .tool--range input,
+  .field input[type='range'],
+  .timeline input[type='range'] {
+    height: 32px;
+  }
+  .tick {
+    min-width: 32px;
+    min-height: 32px;
+  }
+  .part-chip,
+  .filter,
+  .btn--small,
+  .sheet-row,
+  .segmented button {
+    min-height: 32px;
+  }
+  .tab {
+    min-height: 36px;
+  }
+  .toggle {
+    min-height: 32px;
+  }
+  .dv__bar .icon-btn {
+    width: 32px;
+    height: 32px;
+  }
+  .panel__wide {
+    width: 32px;
+    left: -11px;
+  }
+}
+
+/* ------------------------------------------------------------- short screens (a phone on its side) */
+
+@media (max-height: 500px) {
+  :root {
+    --top-h: 48px;
+    --strip-h: 44px;
+  }
+  /* the tools: one row across the top of the view, so they do not cover the subject */
+  .toolbar {
+    top: 8px;
+    bottom: auto;
+    left: 8px;
+    right: 8px;
+    transform: none;
+    width: auto;
+    max-width: none;
+    padding: 0;
+    overflow: hidden;
+    transition: none;
+  }
+  .toolbar__row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+}
+
+/* with the side panel (from 640 px wide): the modes as a column of icons (the name stays as the label of the button) and the
+   card of the selected part and the panel button in the bottom corners */
+@media (max-height: 500px) and (min-width: 640px) {
+  :root {
+    --rail-w: 56px;
+  }
+  .rail {
+    padding: 4px;
+    gap: 2px;
+  }
+  .rail__btn {
+    min-height: 32px;
+    padding: 6px 2px;
+  }
+  .rail__btn span {
+    display: none;
+  }
+  /* a short card (the name and the buttons; the text is in the panel), clear of the tools above and of the panel button */
+  .peek {
+    top: auto;
+    bottom: 10px;
+    left: 10px;
+    width: min(300px, calc(100% - 64px));
+    padding: 8px 12px;
+  }
+  .peek p {
+    display: none;
+  }
+  .panel-toggle {
+    top: auto;
+    bottom: 10px;
+    right: 10px;
+  }
+}
+
+/* a phone on its side, narrower than 640 px: the phone layout with a one-row top bar and a smaller rail */
+@media (max-width: 639px) and (max-height: 500px) {
+  :root {
+    --top-h: 52px;
+  }
+  #app {
+    grid-template-rows: var(--top-h) 44px minmax(0, 1fr) var(--strip-h);
+  }
+  .topbar {
+    flex-wrap: nowrap;
+    padding: 6px 12px;
+    gap: 10px;
+  }
+  .scene-switch {
+    order: 0;
+    width: auto;
+    flex: 0 1 auto;
+    margin-left: 4px;
+    justify-content: flex-start;
+  }
+  .scene-switch button {
+    flex: none;
+  }
+  .rail {
+    padding: 2px 8px;
+  }
+  .rail__btn {
+    padding: 4px 8px;
+  }
+  .peek {
+    bottom: calc(var(--grip-h) + 8px);
+  }
+}
+
+/* ------------------------------------------------------------- no WebGL */
+
+.unsupported {
+  grid-area: 1 / 1 / -1 / -1;
+  display: grid;
+  gap: 14px;
+  align-content: center;
+  justify-content: center;
+  padding: 24px 16px;
+  overflow-y: auto;
+}
+
+.unsupported__card {
+  width: min(560px, calc(100vw - 32px));
+  padding: 18px 22px;
+  border: 1px solid var(--line-2);
+  border-radius: var(--radius);
+  background: var(--card);
+  box-shadow: var(--shadow);
+}
+
+.unsupported__card--alt {
+  box-shadow: none;
+  background: transparent;
+}
+
+.unsupported__card .lead {
+  margin: 0 0 10px;
+}
+
+.unsupported__card .hint {
+  margin: 0;
+}
