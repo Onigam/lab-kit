@@ -292,6 +292,18 @@ export class CueClock {
     return { replay: false, cues: dueCues(this.cues, last, t) };
   }
 
+  /**
+   * The audio ended: the cues still to run, including the ones timed a hair after the end of the decoded audio. A marker placed
+   * after the last word (a trailing `[[cutaway:off]]`) gets the time the voice alignment ends at, which can be a few hundredths
+   * of a second more than the duration of the decoded file, so `advance` never reaches it.
+   */
+  finish(): CueStep {
+    const last = this.last;
+    const cues = dueCues(this.cues, last, Number.POSITIVE_INFINITY);
+    this.last = Math.max(last, ...cues.map((c) => c.t));
+    return { replay: false, cues };
+  }
+
   get position(): number {
     return this.last;
   }

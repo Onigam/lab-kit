@@ -135,7 +135,8 @@ language) shows nothing of the feature, silently. The audio files are fetched on
   cues stop being applied (the audio goes on) and « Reprendre le guidage » replays the state at the current position and goes
   on. A **part** segment ends instead (the audio stops, the 3D view stays as the visitor left it) when the visitor selects
   another part, closes the sheet or changes world or mode;
-- at the end of a segment the audio stops, the 3D view keeps its last state and the bar offers « Réécouter »;
+- at the end of a segment the audio stops, the 3D view keeps its last state and the bar offers « Réécouter »; the markers left after the last
+  word (a closing `[[cutaway:off]]`) have run by then, even though their time is a hair after the end of the decoded audio (kit 0.3.1);
 - `prefers-reduced-motion` shortens the camera flights; a missing or undecodable file, or a browser that refuses to start the
   audio, shows a short message in the bar, never an error.
 

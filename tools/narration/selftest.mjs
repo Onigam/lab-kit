@@ -319,6 +319,28 @@ test('validateManifest: names every id the lab does not know', () => {
   assert.deepEqual(K.validateManifest(ok, known), []);
 });
 
+test('CueClock.finish: a cue timed a hair after the decoded end still runs when the audio ends', () => {
+  // `[[cutaway:on]] … [[cutaway:off]]`: the closing marker is at the end of the aligned text, the decoded audio is 0.1 s shorter
+  const part = [
+    { t: 0, do: { cutaway: true } },
+    { t: 22.8, do: { cutaway: false } },
+  ];
+  const clock = new K.CueClock(part);
+  assert.deepEqual(clock.seek(0).cues, [part[0]]);
+  const fired = [];
+  for (let t = 1; t < 22.7; t += 1) fired.push(...clock.advance(t).cues);
+  fired.push(...clock.advance(22.7).cues); // the clock stops at the duration of the decoded audio
+  assert.deepEqual(fired, []);
+  assert.deepEqual(clock.finish().cues, [part[1]]);
+  assert.deepEqual(clock.finish().cues, []); // once
+  // nothing left: nothing to run
+  const all = new K.CueClock(part);
+  all.seek(22.8);
+  assert.deepEqual(all.finish().cues, []);
+  // a segment with no cue at all
+  assert.deepEqual(new K.CueClock([]).finish().cues, []);
+});
+
 test('scopes and time', () => {
   assert.equal(K.scopeKind('intro'), 'intro');
   assert.equal(K.scopeKind('part:wheel-hub'), 'part');

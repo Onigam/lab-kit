@@ -440,6 +440,9 @@ export class NarrationEngine {
     const s = this.state;
     if (!s.segment) return;
     this.tick(); // the cues up to the very end
+    // the markers after the last word (an "off" that closes the segment) are timed at the end of the aligned text, a hair after the
+    // end of the decoded audio: run what is left so the 3D view ends in the state the script describes
+    if (this.clock) this.run(this.clock.finish().cues.map((c) => c.do));
     s.status = 'ended';
     s.position = s.duration;
     s.caption = '';
