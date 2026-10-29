@@ -122,6 +122,11 @@ language) shows nothing of the feature, silently. The audio files are fetched on
 - a speaker button in the header, next to the language switch, plays the `intro` segment (a « ● » on it while the narrator
   speaks); each world overview has a « Écouter · 0:42 » button (its `scene:` segment) and each part sheet and lesson has one
   (`part:`, `lesson:`), only when the segment exists; the button becomes « Pause » while it speaks and « Réécouter » at the end;
+- **a first-visit invitation** (kit 0.4.0), because the introduction is the lab's way in: until the visitor has used the guide or
+  dismissed it, the speaker gets a copper ring that pulses three times and a quiet bubble under it (« Commencer par la visite
+  guidée · 1:54 », its text starts the introduction, its cross dismisses it), and the « Écouter » button of the overview wears a copper
+  wash. Remembered per lab in the browser (`<lab id>:narration-invited`), so it never comes back; nothing starts by itself (browsers
+  refuse it and a voice that starts alone is an intrusion); with `prefers-reduced-motion` there is no pulse and no slide;
 - a **transport bar** over the 3D view (above the toolbar; on a phone above the toolbar that rides on the bottom sheet, the
   sheet folds when a narration starts): play/pause, a seekable position with elapsed and total time, speed 1× / 1.25× / 1.5×,
   subtitles on/off, « Guidage 3D » on/off, close, the title of the segment and the mention of the synthetic voice

@@ -124,6 +124,7 @@ const COMMON = {
   narrListen: ['Écouter', 'Listen'],
   narrReplay: ['Réécouter', 'Listen again'],
   narrIntro: ['Écouter la présentation', 'Listen to the introduction'],
+  narrInvite: ['Commencer par la visite guidée', 'Start with the guided tour'],
   narrPlayer: ['Guide parlé', 'Spoken guide'],
   narrSubtitles: ['Sous-titres', 'Subtitles'],
   narrGuidance: ['Guidage 3D', '3D guidance'],

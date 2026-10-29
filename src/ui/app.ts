@@ -363,7 +363,9 @@ export class App<S extends LabSim = any> {
               h('i', { style: `--p:${(done / lessons.length) * 100}%` }),
             )
           : null,
-        this.narration?.speakerShown ? this.narration.speaker : null,
+        this.narration?.speakerShown
+          ? h('span', { class: 'narr-anchor' }, this.narration.speaker, this.narration.invite)
+          : null,
         h(
           'div',
           { class: 'segmented lang-switch' },

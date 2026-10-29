@@ -2489,12 +2489,132 @@ body.panel-resizing {
   }
 }
 
+/* first visit: the speaker is the entry to the lab's introduction, so it is invited once (a soft ring, a quiet bubble) */
+.narr-anchor {
+  position: relative;
+  display: inline-flex;
+}
+
+.narr-speaker.is-inviting {
+  border-color: var(--copper);
+  color: var(--copper-ink);
+  animation: narr-ring 1.8s ease-out 1s 3;
+}
+
+@keyframes narr-ring {
+  from {
+    box-shadow: 0 0 0 0 rgba(196, 105, 44, 0.5);
+  }
+  to {
+    box-shadow: 0 0 0 14px rgba(196, 105, 44, 0);
+  }
+}
+
+.narr-invite {
+  position: absolute;
+  top: calc(100% + 12px);
+  right: calc(-6px - var(--narr-shift, 0px));
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  width: max-content;
+  max-width: min(340px, calc(100vw - 24px));
+  padding: 4px 4px 4px 14px;
+  border: 1px solid var(--copper);
+  border-radius: 12px;
+  background: var(--card);
+  box-shadow: var(--shadow);
+  animation: narr-invite-in 0.3s ease-out 0.8s both;
+}
+
+.narr-invite[hidden] {
+  display: none;
+}
+
+/* while the bubble is open the top bar is above the panel's toggle, which would cut its corner */
+.topbar:has(.narr-invite:not([hidden])) {
+  z-index: 12;
+}
+
+/* the little arrow towards the speaker */
+.narr-invite::before {
+  content: '';
+  position: absolute;
+  top: -6px;
+  right: calc(18px + var(--narr-shift, 0px));
+  width: 10px;
+  height: 10px;
+  border: solid var(--copper);
+  border-width: 1px 0 0 1px;
+  background: var(--card);
+  transform: rotate(45deg);
+}
+
+.narr-invite__go {
+  padding: 8px 4px;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.narr-invite__t {
+  white-space: nowrap;
+}
+
+.narr-invite__go:hover {
+  color: var(--copper-ink);
+}
+
+.narr-invite__x {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: var(--ink-2);
+  cursor: pointer;
+}
+
+.narr-invite__x:hover {
+  background: var(--copper-soft);
+  color: var(--ink);
+}
+
+@keyframes narr-invite-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .narr-speaker.is-inviting,
+  .narr-invite {
+    animation: none;
+  }
+}
+
 /* « Écouter · 0:42 » on an overview, a part sheet or a lesson */
 .listen {
   margin: 4px 0 10px;
 }
 
 .btn--listen svg {
+  color: var(--copper-ink);
+}
+
+/* until the visitor has used the guide once, the overview's button stands out (a quiet copper wash, no motion) */
+.btn--listen.is-invite {
+  border-color: var(--copper);
+  background: var(--copper-soft);
   color: var(--copper-ink);
 }
 

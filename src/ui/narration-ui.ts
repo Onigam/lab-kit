@@ -28,6 +28,9 @@ export class NarrationPlayer {
   readonly el: HTMLElement;
   /** The speaker button of the header (put it next to the language switch when `speakerShown`). */
   readonly speaker: HTMLButtonElement;
+  /** The first-visit bubble that invites to the introduction (put it right after the speaker, in the same anchor). */
+  readonly invite: HTMLElement;
+  private readonly inviteText: HTMLElement;
 
   private playBtn: HTMLButtonElement;
   private titleEl = h('b', { class: 'narr__title' });
@@ -122,6 +125,27 @@ export class NarrationPlayer {
     this.speaker = h('button', { class: 'icon-btn narr-speaker', type: 'button', onclick: () => this.speakerClick() });
     this.speaker.append(icon(ICONS.speaker, 18), h('i', { class: 'narr-speaker__dot', 'aria-hidden': 'true' }));
 
+    // the first visit: a quiet bubble under the speaker; its text starts the introduction, the cross only dismisses it
+    this.inviteText = h('span', {});
+    const closeInvite = h('button', {
+      class: 'narr-invite__x',
+      type: 'button',
+      onclick: () => engine.markInvited(),
+    });
+    closeInvite.append(icon(ICONS.close, 14));
+    this.invite = h(
+      'div',
+      { class: 'narr-invite', role: 'status', hidden: true },
+      h('button', { class: 'narr-invite__go', type: 'button', onclick: () => this.speakerClick() }, this.inviteText),
+      closeInvite,
+    );
+    closeInvite.setAttribute('aria-label', t('close'));
+    closeInvite.title = t('close');
+
+    const onResize = (): void => this.keepInviteInView();
+    window.addEventListener('resize', onResize);
+    this.off.push(() => window.removeEventListener('resize', onResize));
+
     this.off.push(
       engine.onChange((event) => {
         if (event === 'time') this.renderTime();
@@ -129,6 +153,14 @@ export class NarrationPlayer {
       }),
     );
     this.render();
+  }
+
+  /** On a narrow screen the bubble would leave the view on the left: push it back to the right, the arrow follows. */
+  private keepInviteInView(): void {
+    if (this.invite.hidden) return;
+    this.invite.style.setProperty('--narr-shift', '0px');
+    const shift = Math.max(0, 12 - this.invite.getBoundingClientRect().left);
+    if (shift > 0) this.invite.style.setProperty('--narr-shift', `${Math.ceil(shift)}px`);
   }
 
   private speakerClick(): void {
@@ -171,6 +203,25 @@ export class NarrationPlayer {
     this.speaker.setAttribute('aria-pressed', intro && running ? 'true' : 'false');
     this.speaker.classList.toggle('is-playing', !!seg && running);
     this.speaker.classList.toggle('is-on', intro);
+
+    // first visit only: the bubble and the soft pulse that invite to the introduction, until the visitor has used or
+    // dismissed them (never while something is on air)
+    const inviting = this.speakerShown && !seg && !e.invited;
+    this.invite.hidden = !inviting;
+    this.speaker.classList.toggle('is-inviting', inviting);
+    if (inviting) {
+      const duration = e.segment('intro')?.duration ?? 0;
+      const text = duration > 0 ? `${t('narrInvite')} · ${formatTime(duration)}` : t('narrInvite');
+      if (this.inviteText.dataset.text !== text) {
+        this.inviteText.dataset.text = text;
+        // the duration never breaks onto a line of its own
+        this.inviteText.replaceChildren(
+          duration > 0 ? h('span', {}, `${t('narrInvite')} · `) : text,
+          ...(duration > 0 ? [h('b', { class: 'narr-invite__t' }, formatTime(duration))] : []),
+        );
+      }
+      requestAnimationFrame(() => this.keepInviteInView());
+    }
 
     this.el.hidden = !seg;
     if (!seg) {
@@ -289,6 +340,8 @@ export function listenRow(ctx: AppContext, scope: NarrationScope): HTMLElement |
         : `${t('narrListen')} · ${formatTime(seg.duration)}`;
     if (label.textContent !== text) label.textContent = text;
     btn.classList.toggle('is-on', running);
+    // until the visitor has used the guide once, the button of the overview stands out
+    btn.classList.toggle('is-invite', !running && !engine.invited);
     btn.setAttribute('aria-pressed', running ? 'true' : 'false');
   };
   update();

@@ -224,6 +224,38 @@ export class NarrationEngine {
     return `${this.ctx.def.id}:narration`;
   }
 
+  /** The key that remembers, per lab, that the visitor has been invited to the introduction (or used the guide). */
+  private get invitedKey(): string {
+    return `${this.ctx.def.id}:narration-invited`;
+  }
+
+  private invitedInMemory = false;
+
+  /**
+   * The visitor has already been invited to the spoken guide, or has used it: the invitation of the header never comes
+   * back. Kept in the browser; without storage it lasts for the visit.
+   */
+  get invited(): boolean {
+    if (this.invitedInMemory) return true;
+    try {
+      return localStorage.getItem(this.invitedKey) === '1';
+    } catch {
+      return false;
+    }
+  }
+
+  /** Remember that the invitation has been seen (dismissed, accepted, or the guide played). */
+  markInvited(): void {
+    if (this.invited) return;
+    this.invitedInMemory = true;
+    try {
+      localStorage.setItem(this.invitedKey, '1');
+    } catch {
+      /* storage unavailable: the invitation is just not shown again during this visit */
+    }
+    this.emit('state');
+  }
+
   private loadPrefs(): Partial<Prefs> {
     try {
       const p = JSON.parse(localStorage.getItem(this.prefsKey) ?? '{}') as Partial<Prefs>;
@@ -336,6 +368,7 @@ export class NarrationEngine {
   play(scope: NarrationScope): void {
     const seg = this.segment(scope);
     if (!seg || this.destroyed) return;
+    this.markInvited();
     this.closeQuietly();
     const s = this.state;
     s.scope = scope;
