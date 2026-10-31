@@ -45,6 +45,12 @@ Each rule says how to check it and where it came from (lab, date, the owner's wo
   ripples) is listed as such in `docs/water.md`. _Mill, 30/10: « soigner la mécanique des fluides de l'eau »._
 - **The device can be found in its setting**: from the overview the visitor sees where the machine is, and selecting it brings the
   camera close enough to read it. _Mill, 30/10: « la vue du site est grossière »._
+- **A warm, full, stable picture**: no flicker or shimmer (thin lines, far slopes, shadow edges, coplanar faces), no glitch when the
+  camera moves slowly; light, materials and shading that give warmth and contact (ambient occlusion, tone mapping, soft shadows, a
+  little texture and wear) and enough near detail that a view never feels empty. _Check_: a slow orbit and a slow dolly captured
+  frame by frame, the frame-to-frame difference has no spike; a still of each world at three distances. _Ram pump film, 31/10:
+  « je trouve la 3D un peu froide et des fois il y a des glitchs / scintillements, il y a peut-être des shaders à rajouter ou des
+  détails pour que ça soit plus réaliste / moins vide »._
 
 ## 4. Camera, layout, way in
 
