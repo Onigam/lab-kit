@@ -154,8 +154,10 @@ const plan = script.segments.map((seg) => {
     .slice(0, 16);
   const file = `${seg.id.replace(/[^\w-]+/g, '_')}.mp3`;
   const old = known.get(seg.id);
-  const upToDate = !FORCE && old && old.hash === hash && fs.existsSync(path.join(OUT, file));
-  return { seg, spoken, cues, hash, file, upToDate };
+  // current: the audio on disk matches the script; --force regenerates the selected segments but keeps the others
+  const current = !!old && old.hash === hash && fs.existsSync(path.join(OUT, file));
+  const upToDate = !FORCE && current;
+  return { seg, spoken, cues, hash, file, upToDate, current };
 });
 
 const selected = plan.filter((p) => !ONLY || ONLY.includes(p.seg.id) || ONLY.includes(p.seg.scope));
@@ -226,7 +228,7 @@ const segments = plan
     const fresh = results.get(p.seg.id);
     if (!fresh) {
       const old = known.get(p.seg.id);
-      if (old && p.upToDate) return { ...old, scope: p.seg.scope, title: p.seg.title, scene: p.seg.scene };
+      if (old && p.current) return { ...old, scope: p.seg.scope, title: p.seg.title, scene: p.seg.scene };
       return null; // not generated yet
     }
     const n = fresh.characters.length;
