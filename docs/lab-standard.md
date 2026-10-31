@@ -23,6 +23,8 @@ the book. **"Lite" is retired.** There is one bar, and it is the least of the th
 
 ## Not automated (the lead checks, the owner decides)
 
+- **The quality and detail rules of [`lab-quality.md`](lab-quality.md)**, checked by a reviewer who did not build the lab, before the
+  owner sees it; the report is the lab's `docs/qa.md`. The points below are the short version.
 - The spoken guide follows `narration-style.md` (Pelton's tone, anonymous, honest, at most 30,000 characters a language); **no credit is
   spent without the owner's yes** and the owner listens before it goes live.
 - Each world looks finished: the scenery and the water have had their polish pass, nothing floats, every moving part is attached to what
@@ -51,3 +53,5 @@ An exception (for example a lab whose device genuinely has two worlds) needs the
    owner's yes on that scope, not on a smaller one.
 2. Never write "terminé" or "livré" before `status: released`. At each checkpoint show the owner the standard's report.
 3. Budget for the bar: about 4 to 5 million tokens and 35,000 to 45,000 ElevenLabs credits (both languages) per lab.
+4. Before each checkpoint, have the lab reviewed against [`lab-quality.md`](lab-quality.md) by someone who did not build it, and show
+   the owner that report with the standard's.
