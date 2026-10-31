@@ -16,9 +16,11 @@ const OUT = opt('out');
 const ONLY = typeof opt('only') === 'string' ? opt('only').split(',') : null;
 const DRY = !!opt('dry-run', false);
 const FORCE = !!opt('force', false);
+// also keep each segment's character timings (<segment>.alignment.json), so cues can be re-timed later without paying again
+const ALIGN = !!opt('alignment', false);
 if (!SRC || !OUT) {
   console.error(
-    'Usage: node generate.mjs --src narration/fr.json --out public/audio/fr [--only id,id] [--dry-run] [--force]',
+    'Usage: node generate.mjs --src narration/fr.json --out public/audio/fr [--only id,id] [--dry-run] [--force] [--alignment]',
   );
   process.exit(2);
 }
@@ -209,6 +211,11 @@ for (const p of todo) {
     console.warn(`\n  note: ${a ? a.characters.length : 0} aligned characters for ${p.spoken.length}`);
   }
   fs.writeFileSync(path.join(OUT, p.file), Buffer.from(d.audio_base64, 'base64'));
+  if (ALIGN)
+    fs.writeFileSync(
+      path.join(OUT, p.file.replace(/\.mp3$/, '.alignment.json')),
+      JSON.stringify({ spoken: p.spoken, ...a }) + '\n',
+    );
   results.set(p.seg.id, a);
   console.log(`${a.character_end_times_seconds.at(-1).toFixed(1)} s`);
 }
