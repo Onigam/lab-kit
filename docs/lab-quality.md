@@ -48,7 +48,10 @@ Each rule says how to check it and where it came from (lab, date, the owner's wo
 - **A warm, full, stable picture**: no flicker or shimmer (thin lines, far slopes, shadow edges, coplanar faces), no glitch when the
   camera moves slowly; light, materials and shading that give warmth and contact (ambient occlusion, tone mapping, soft shadows, a
   little texture and wear) and enough near detail that a view never feels empty. _Check_: a slow orbit and a slow dolly captured
-  frame by frame, the frame-to-frame difference has no spike; a still of each world at three distances. _Ram pump film, 31/10:
+  frame by frame, the frame-to-frame difference has no spike; a still of each world at three distances.
+  `tools/review/flicker.mjs` does the orbit and the dolly in every world on pinned clocks and reports the share of shimmering
+  pixels and the largest jump (a jump over twice the median frame difference is a pop); compare the shimmer with the lab's
+  previous release (kit 0.5.0, ram pump site: 1.6 % → 1.0 % for a slow orbit). _Ram pump film, 31/10:
   « je trouve la 3D un peu froide et des fois il y a des glitchs / scintillements, il y a peut-être des shaders à rajouter ou des
   détails pour que ça soit plus réaliste / moins vide »._
 

@@ -80,6 +80,49 @@ come before the text of the overview, so the first button is not below the fold 
 - **Contrast**: the text greys and accents reach 4.5:1 (`--ink-3`, `--water-ink`, `--copper-ink`, `--leaf-ink`); the fills
   keep their hues (`--ink-4` is the old `--ink-3`).
 
+### The picture
+
+Every frame goes through the stage's composer; since 0.5.0 its scene pass is **multisampled (MSAA 4)**. Before, the canvas's
+`antialias` never reached the 3D and edges crawled when the camera moved: on the ram pump's site the share of shimmering pixels
+in a slow orbit falls from 1.6 % to 1.0 %. Only the scene target is multisampled (the composer pins the scene pass to it) and the
+canvas has none of its own, so the memory stays that of 0.4.0 (measured: 337 MB for the GPU process at 390 × 844 ×2, against
+332 to 336 MB). Shadows get a soft edge of 2 texels on every light still at three's default radius (a light's own radius is kept).
+
+**Per world** (`scene.userData.look`, all optional; nothing set = the picture of 0.4.0, ACES at exposure 1):
+
+```ts
+import { PAPER_STUDIO } from '@onigam/lab-kit/three';
+
+scene.userData.wantsEnv = true; // a paper studio: the stage fills scene.environment
+scene.userData.look = { ...PAPER_STUDIO }; // Neutral tone mapping at 1.2 and the warm paper studio as environment
+siteScene.userData.look = { toneMapping: 'neutral', exposure: 1.32, saturation: 0.86 }; // a landscape's own tone
+```
+
+`toneMapping` (`aces` | `neutral` | `agx` | `linear`), `exposure`, `saturation` (adds a full-screen pass only while such a world
+is shown), `environment` (`room`, three's neutral RoomEnvironment, or `paper`), and for films `ao` (default: the `wantsEnv`
+worlds) and `aoRadius` (metres; default 6 % of the size of the world's parts). **`PAPER_STUDIO` is opt-in, world by world**:
+under ACES the labs' paper `#efe6d3` is drawn as a grey `#dddad3`, under Neutral as itself, but materials tuned under ACES come out
+more saturated (an OSB or a plaster wall turns orange), so check the palette before turning it on.
+
+**Devices.** At start the stage looks at the device: `navigator.deviceMemory` of 2 GB or less, or a GPU without 4 samples, draws
+FXAA instead of MSAA (at pixel ratio 1.5 with little memory); everything else gets MSAA 4 up to pixel ratio 2. While the visitor
+looks, a device whose frames take more than 22 ms (median of 90) lowers its pixel ratio one step (2, 1.75, 1.5, 1.25, 1), at most
+every 3 s, never back up in the same visit. `stage.quality` tells what was chosen.
+
+**Films and automated browsers.** A browser driven by a tool (`navigator.webdriver`, as Puppeteer is) and an address with
+`?quality=full` always get the full, fixed picture: MSAA 4, pixel ratio up to 2, no adaptation, the same pixels frame for frame.
+A film capture adds its extras with `Stage.setLook`:
+
+```ts
+window.__lab.stage.setLook({ adaptive: false, supersample: 3, ao: true });
+// supersample: the scene drawn 2^n times with sub-pixel jitter (3 = 8 samples), shadows once per frame
+// ao: three's GTAO in the worlds whose look asks for it (by default the wantsEnv worlds, never a landscape)
+```
+
+`stage.look` reads the current options; `setLook` keeps the same composer object (a capture that wraps `stage.composer.render`
+keeps working). Measures of the picture's stability for the review: [`tools/review/flicker.mjs`](tools/review/flicker.mjs)
+(`docs/lab-quality.md` §3).
+
 ### Spoken guide (narration)
 
 A lab can speak. `LabDefinition.narration = { manifest: 'audio/{lang}/manifest.json', onCue? }` turns on a spoken explanation of
@@ -105,11 +148,13 @@ added when a lab really needs one).
 ```bash
 npm install
 npm run typecheck
+npm test           # the self-tests of the pure logic (narration, look)
 npm run build      # dist/ (JavaScript, type declarations, styles.css)
 npm run release    # from a clean main: builds, commits dist/ on a detached HEAD, tags vX.Y.Z and pushes the tag
 ```
 
-`main` never contains `dist/`; a release is a tag whose commit does. Bump `version` in `package.json` before releasing.
+`main` never contains `dist/`; a release is a tag whose commit does. Bump `version` in `package.json` and add the release to
+[`CHANGELOG.md`](CHANGELOG.md) before releasing.
 To try a kit change in a lab without releasing, `npm install ../lab-kit --no-save` in the lab.
 
 ## Licence
@@ -141,6 +186,15 @@ redimensionnement et à l'ouverture du volet ; « Vue d'ensemble » suit le curs
 vers le pointeur, et un glissement qui démarre sur une pièce fait tourner la caméra autour du point saisi (il reste sous le doigt,
 sans saut de vue ; `Stage.setPivot` fixe le point de rotation d'un glissement sur le vide) ; sans WebGL, `mountLab` affiche
 un message bilingue et renvoie `null`. Un monde lourd peut être construit à la première visite (`module: lazyModule('id', () => créerMonde())`), et les raccourcis d'une vue d'ensemble peuvent ouvrir un mode (`{ label, mode }`).
+
+**Image** (0.5.0) : la scène est dessinée en **MSAA 4** (avant, l'anticrénelage du canevas n'atteignait jamais la 3D) sans
+mémoire de plus (une seule cible multiéchantillonnée, aucune pour le canevas), les ombres ont un bord doux de 2 texels. Chaque
+monde peut demander sa tonalité dans `scene.userData.look` (`toneMapping`, `exposure`, `saturation`, `environment`, et pour les
+films `ao`, `aoRadius`) ; rien = l'image de 0.4.0. `PAPER_STUDIO` (Neutral à 1,2 et le studio papier chaud) se demande monde par
+monde : le papier reste papier, mais une matière réglée sous ACES sort plus saturée. Un appareil modeste dessine en FXAA et baisse
+sa densité de pixels quand ses images sont lentes ; un navigateur automatisé ou `?quality=full` a toujours l'image complète et
+fixe ; un film ajoute `stage.setLook({ adaptive: false, supersample: 3, ao: true })`. Mesure de stabilité :
+`tools/review/flicker.mjs`.
 
 **Guide parlé** : un lab peut parler. `LabDefinition.narration = { manifest: 'audio/{lang}/manifest.json', onCue? }` ajoute une
 présentation orale du lab (bouton haut-parleur dans la barre du haut), de chaque monde et de chaque pièce (bouton

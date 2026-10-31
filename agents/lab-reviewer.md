@@ -31,6 +31,8 @@ You did not build this lab. If you wrote any of its code or text, stop and tell 
    - again with `LAB_LANG=en`, then `WIDTH=768` and `WIDTH=390` in both languages with `PARTS=0` (worlds, display modes and
      every mode, without the part close-ups).
      Each run writes `index.md`: the shots in order and the console errors.
+   - the picture's stability: `URL=http://localhost:58NN/ OUT=…/flicker node ~/Dev/lab-kit/tools/review/flicker.mjs` (a slow orbit
+     and dolly in every world; a spike over 2 is a pop; compare the shimmer with the previous release, `docs/lab-quality.md` §3).
 4. **Look at every screenshot** with Read (it shows the image), and ask of each the questions the owner asks:
    - What is this object? Would anyone recognise it from here, and from close up?
    - Is every moving part attached to what drives it, at a visible point? Does anything float, or sink into what carries it?

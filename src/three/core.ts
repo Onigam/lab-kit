@@ -1,18 +1,33 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
-import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
+import { FXAAPass } from 'three/examples/jsm/postprocessing/FXAAPass.js';
+import type { GTAOPass } from 'three/examples/jsm/postprocessing/GTAOPass.js';
 import { OutlinePass } from 'three/examples/jsm/postprocessing/OutlinePass.js';
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
+import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
 import { CSS2DObject, CSS2DRenderer } from 'three/examples/jsm/renderers/CSS2DRenderer.js';
 import { tr } from '../i18n';
+import {
+  FilmSSAAPass,
+  LOOK_DEFAULTS,
+  LabComposer,
+  SaturationShader,
+  aoParameters,
+  makeAO,
+  paperEnvironment,
+  toneMappingOf,
+  type LookOptions,
+} from './look';
+import { FrameGovernor, planQuality, resolveWorldLook, type DeviceInfo, type QualityPlan } from './look-policy';
 import { GHOST, GHOST_WIRE } from './materials';
 import type { CameraPose, Hotspot, SceneId, SceneModule } from './types';
 import { clamp, damp, ease, lerp } from './util';
 
 // Shared renderer for the three worlds: one WebGL canvas, one CSS2D label layer,
 // an outline pass for hover/selection, orbit controls and camera fly-to animations.
+// The look of the picture (anti-aliasing, tone per world, the paper studio, soft shadows, films' extras): see look.ts.
 
 interface Fly {
   fromPos: THREE.Vector3;
@@ -111,13 +126,25 @@ export class Stage {
   readonly camera = new THREE.PerspectiveCamera(40, 1, 0.01, 100);
   readonly controls: OrbitControls;
   private labels: CSS2DRenderer;
-  private composer: EffectComposer;
+  private composer!: LabComposer;
   private renderPass: RenderPass;
+  /** The look of the picture; change it with `setLook`. */
+  private lookOptions: LookOptions;
+  /** What the device was found able to draw at start (see `planQuality`). */
+  readonly quality: QualityPlan;
+  private ssaaPass: FilmSSAAPass | null = null;
+  private aoPass: GTAOPass | null = null;
+  private saturationPass: ShaderPass | null = null;
+  private pmrem: THREE.PMREMGenerator;
+  private paperEnv: THREE.Texture | null = null;
+  private governor: FrameGovernor | null = null;
+  private lastFrameAt = 0;
   private outline: QuietOutlinePass;
   private outlineHover: QuietOutlinePass;
   private modules = new Map<SceneId, SceneModule>();
   private labelSets = new Map<SceneId, LabelEntry[]>();
   private poses = new Map<SceneId, CameraPose>();
+  /** three's neutral RoomEnvironment (a world may ask for it with `look.environment = 'room'`). */
   private env: THREE.Texture;
   private factories = new Map<SceneId, () => SceneModule>();
   private fly: Fly | null = null;
@@ -155,8 +182,17 @@ export class Stage {
     private host: HTMLElement,
     private events: StageEvents,
   ) {
-    this.renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    // the canvas itself needs no anti-aliasing: every frame goes through the composer, whose scene target is multisampled
+    this.renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: 'high-performance' });
+    this.quality = planQuality(deviceInfo(this.renderer));
+    this.lookOptions = {
+      ...LOOK_DEFAULTS,
+      msaa: this.quality.msaa,
+      fxaa: this.quality.fxaa,
+      maxPixelRatio: this.quality.maxPixelRatio,
+      adaptive: this.quality.adaptive,
+    };
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, this.lookOptions.maxPixelRatio));
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFShadowMap;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -168,23 +204,20 @@ export class Stage {
     this.labels.domElement.className = 'label-layer';
     host.appendChild(this.labels.domElement);
 
-    const pmrem = new THREE.PMREMGenerator(this.renderer);
-    this.env = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+    this.pmrem = new THREE.PMREMGenerator(this.renderer);
+    this.env = this.pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
 
     this.controls = new OrbitControls(this.camera, this.renderer.domElement);
     this.controls.enableDamping = true;
     this.controls.dampingFactor = 0.08;
     this.controls.screenSpacePanning = true;
 
-    this.composer = new EffectComposer(this.renderer);
     this.renderPass = new RenderPass(new THREE.Scene(), this.camera);
-    this.composer.addPass(this.renderPass);
     this.outlineHover = new QuietOutlinePass(new THREE.Vector2(1, 1), new THREE.Scene(), this.camera);
     this.outlineHover.edgeStrength = 2.2;
     this.outlineHover.edgeThickness = 1;
     this.outlineHover.visibleEdgeColor.set(0x7cc3e8);
     this.outlineHover.hiddenEdgeColor.set(0x3c6d8c);
-    this.composer.addPass(this.outlineHover);
     this.outline = new QuietOutlinePass(new THREE.Vector2(1, 1), new THREE.Scene(), this.camera);
     this.outline.edgeStrength = 4;
     this.outline.edgeThickness = 1.4;
@@ -192,8 +225,7 @@ export class Stage {
     this.outline.pulsePeriod = 2.4;
     this.outline.visibleEdgeColor.set(0xff8a2a);
     this.outline.hiddenEdgeColor.set(0xb85f1d);
-    this.composer.addPass(this.outline);
-    this.composer.addPass(new OutputPass());
+    this.buildComposer();
 
     const el = this.renderer.domElement;
     el.addEventListener('pointerdown', (e) => {
@@ -242,9 +274,139 @@ export class Stage {
     this.resize();
   }
 
+  // ------------------------------------------------------------ the look of the picture
+
+  /** The look the stage draws with now (a copy). */
+  get look(): LookOptions {
+    return { ...this.lookOptions };
+  }
+
+  /**
+   * Change the look of the picture. A film capture calls it once the lab is up, for example
+   * `setLook({ adaptive: false, supersample: 3, ao: true })`: the full picture, fixed, with eight jittered samples per frame
+   * and ambient occlusion in the paper-studio worlds. Anti-aliasing, supersampling and AO rebuild the chain of passes.
+   */
+  setLook(next: Partial<LookOptions>): void {
+    const before = this.lookOptions;
+    this.lookOptions = { ...before, ...next };
+    const l = this.lookOptions;
+    if (l.maxPixelRatio !== before.maxPixelRatio || (before.adaptive && !l.adaptive)) {
+      this.governor = null;
+      this.applyPixelRatio(Math.min(window.devicePixelRatio, l.maxPixelRatio));
+    }
+    if (l.shadowRadius !== before.shadowRadius)
+      for (const mod of this.modules.values()) this.applyShadowRadius(mod.scene);
+    const chain = (o: LookOptions) => `${o.msaa}|${o.fxaa}|${o.supersample}|${o.ao}`;
+    if (chain(before) !== chain(l)) this.buildComposer();
+    this.bindScene();
+  }
+
+  /** The warm paper studio, built on first use. */
+  private paperTexture(): THREE.Texture {
+    return (this.paperEnv ??= this.pmrem.fromScene(paperEnvironment(), 0.04).texture);
+  }
+
+  /** The soft edge of the shadows on every light that kept three's default radius (a lab's own radius is kept). */
+  private applyShadowRadius(scene: THREE.Scene): void {
+    scene.traverse((o) => {
+      const light = o as THREE.DirectionalLight;
+      if (!light.isLight || !light.castShadow || !light.shadow) return;
+      const own = light.userData.labShadowRadius as number | undefined;
+      if (own === undefined) light.userData.labShadowRadius = light.shadow.radius === 1 ? 0 : light.shadow.radius;
+      const kept = light.userData.labShadowRadius as number;
+      light.shadow.radius = kept > 0 ? kept : this.lookOptions.shadowRadius;
+    });
+  }
+
+  /** The chain of passes: the scene (supersampled for a film), AO, the outlines, the output, the saturation, FXAA. */
+  private buildComposer(): void {
+    const l = this.lookOptions;
+    // one composer for the life of the stage: whoever holds it (a film's capture) keeps holding the one that draws
+    this.composer ??= new LabComposer(this.renderer, 0);
+    this.composer.setSamples(l.supersample > 0 ? 0 : l.msaa);
+    this.composer.clearPasses();
+    const scene = this.active?.scene ?? this.renderPass.scene;
+    this.ssaaPass = null;
+    if (l.supersample > 0) {
+      this.ssaaPass = new FilmSSAAPass(scene, this.camera);
+      this.ssaaPass.sampleLevel = l.supersample;
+      this.ssaaPass.unbiased = true;
+      this.composer.addPass(this.ssaaPass);
+    } else this.composer.addPass(this.renderPass);
+    this.aoPass?.dispose();
+    this.aoPass = null;
+    if (l.ao) {
+      this.aoPass = makeAO(scene, this.camera);
+      this.composer.addPass(this.aoPass);
+    }
+    this.composer.addPass(this.outlineHover);
+    this.composer.addPass(this.outline);
+    this.composer.addPass(new OutputPass());
+    this.saturationPass = new ShaderPass(SaturationShader);
+    this.saturationPass.enabled = false;
+    this.composer.addPass(this.saturationPass);
+    if (l.fxaa) this.composer.addPass(new FXAAPass());
+    if (this.size.w) this.composer.setSize(this.size.w, this.size.h);
+  }
+
+  /** Point the passes at the active world and give it its tone, environment, saturation and occlusion. */
+  private bindScene(): void {
+    const mod = this.active;
+    if (!mod) return;
+    const w = resolveWorldLook(mod.scene.userData);
+    this.renderer.toneMapping = toneMappingOf(w.toneMapping);
+    this.renderer.toneMappingExposure = w.exposure;
+    if (mod.scene.userData.wantsEnv) mod.scene.environment = w.environment === 'room' ? this.env : this.paperTexture();
+    this.renderPass.scene = mod.scene;
+    if (this.ssaaPass) this.ssaaPass.scene = mod.scene;
+    if (this.saturationPass) {
+      this.saturationPass.enabled = Math.abs(w.saturation - 1) > 1e-3;
+      this.saturationPass.uniforms.uSat.value = w.saturation;
+    }
+    if (this.aoPass) {
+      this.aoPass.enabled = w.ao;
+      if (w.ao) {
+        this.aoPass.scene = mod.scene;
+        this.aoPass.updateGtaoMaterial(aoParameters(w.aoRadius ?? this.worldSize(mod) * 0.06));
+        this.aoPass.blendIntensity = this.lookOptions.aoIntensity;
+      }
+    }
+  }
+
+  /** Largest side of the box of a world's parts (metres), for the default reach of its occlusion. */
+  private worldSize(mod: SceneModule): number {
+    const box = new THREE.Box3();
+    for (const p of mod.registry.parts.values()) if (p.display !== 'hidden') box.union(mod.registry.bounds(p.id));
+    if (box.isEmpty()) return 1;
+    const s = box.getSize(new THREE.Vector3());
+    return Math.max(s.x, s.y, s.z);
+  }
+
+  private applyPixelRatio(ratio: number): void {
+    if (Math.abs(this.renderer.getPixelRatio() - ratio) < 1e-3) return;
+    this.renderer.setPixelRatio(ratio);
+    this.composer.setPixelRatio(ratio);
+    if (this.size.w) this.composer.setSize(this.size.w, this.size.h);
+  }
+
+  /** A slow device lowers its pixel ratio, one step at a time (see `FrameGovernor`). */
+  private watchFrameTime(): void {
+    if (!this.lookOptions.adaptive) return;
+    const now = performance.now();
+    const interval = this.lastFrameAt ? now - this.lastFrameAt : 0;
+    this.lastFrameAt = now;
+    this.governor ??= new FrameGovernor(this.renderer.getPixelRatio());
+    const ratio = this.governor.push(interval, now);
+    if (ratio !== null) this.applyPixelRatio(ratio);
+  }
+
   register(mod: SceneModule): void {
     this.modules.set(mod.id, mod);
-    if (mod.scene.userData.wantsEnv) mod.scene.environment = this.env;
+    if (mod.scene.userData.wantsEnv) {
+      mod.scene.environment =
+        resolveWorldLook(mod.scene.userData).environment === 'room' ? this.env : this.paperTexture();
+    }
+    this.applyShadowRadius(mod.scene);
     const entries: LabelEntry[] = [];
     for (const h of mod.hotspots) {
       const el = document.createElement('button');
@@ -311,6 +473,7 @@ export class Stage {
     this.camera.near = site ? 0.1 : 0.01;
     this.camera.far = site ? 4000 : 60;
     this.camera.updateProjectionMatrix();
+    this.bindScene();
     this.controls.minDistance = mod.minDistance;
     this.controls.maxDistance = mod.maxDistance;
     this.controls.maxPolarAngle = site ? Math.PI * 0.48 : Math.PI * 0.53;
@@ -703,19 +866,22 @@ export class Stage {
     }
   }
 
-  /** The parts under the pointer, nearest first (the clipped-away half of a part in section mode is skipped). */
-  private cast(e: PointerEvent): { id: string; point: THREE.Vector3 }[] {
+  /**
+   * The parts under the pointer, nearest first (the clipped-away half of a part in section mode is skipped); `seeThrough` when
+   * the surface hit is translucent (a transparent material under full opacity), so a drag can turn around what lies behind it.
+   */
+  private cast(e: PointerEvent): { id: string; point: THREE.Vector3; seeThrough: boolean }[] {
     const rect = this.renderer.domElement.getBoundingClientRect();
     this.pointer.set(((e.clientX - rect.left) / rect.width) * 2 - 1, -((e.clientY - rect.top) / rect.height) * 2 + 1);
     this.raycaster.setFromCamera(this.pointer, this.camera);
     const reg = this.active.registry;
-    const out: { id: string; point: THREE.Vector3 }[] = [];
+    const out: { id: string; point: THREE.Vector3; seeThrough: boolean }[] = [];
     for (const h of this.raycaster.intersectObjects(reg.pickables(), false)) {
       const mat = (h.object as THREE.Mesh).material as THREE.Material;
       // skip clipped-away halves in cutaway mode
       if (mat.clippingPlanes?.some((pl) => pl.distanceToPoint(h.point) < 0)) continue;
       const id = reg.partOf(h.object);
-      if (id) out.push({ id, point: h.point });
+      if (id) out.push({ id, point: h.point, seeThrough: !!mat.transparent && mat.opacity < 0.98 });
     }
     return out;
   }
@@ -751,8 +917,13 @@ export class Stage {
     if (e.target !== this.renderer.domElement) return;
     if (e.pointerType === 'mouse' ? e.button !== 0 || e.ctrlKey || e.metaKey || e.shiftKey : !e.isPrimary) return;
     const reg = this.active.registry;
-    // the first solid part under the pointer (a transparent one in front does not take the grab)
-    const hit = this.cast(e).find((h) => reg.get(h.id)?.display === 'solid');
+    // the pivot, in order: the selected part where the pointer is on it (even behind a translucent shell), the first solid
+    // part that is not see-through, the first solid part (a ghosted or x-rayed one in front never takes the grab)
+    const hits = this.cast(e).filter((h) => reg.get(h.id)?.display === 'solid');
+    const hit =
+      (this.selected ? hits.find((h) => h.id === this.selected) : undefined) ??
+      hits.find((h) => !h.seeThrough) ??
+      hits[0];
     const pivot = hit?.point ?? this.pivot;
     if (!pivot) return;
     this.grab = {
@@ -874,7 +1045,21 @@ export class Stage {
     }
     this.stepGrab();
     this.controls.update();
+    this.watchFrameTime();
     this.composer.render(dt);
     this.labels.render(this.active.scene, this.camera);
   }
+}
+
+/** What the stage can learn of the device: memory, samples, pixel ratio, an automated browser, `?quality=full`. */
+function deviceInfo(renderer: THREE.WebGLRenderer): DeviceInfo {
+  const nav = typeof navigator === 'undefined' ? undefined : (navigator as Navigator & { deviceMemory?: number });
+  const query = typeof location === 'undefined' ? '' : location.search;
+  return {
+    deviceMemory: nav?.deviceMemory,
+    maxSamples: renderer.capabilities.maxSamples,
+    devicePixelRatio: typeof window === 'undefined' ? 1 : window.devicePixelRatio,
+    automated: !!nav?.webdriver,
+    forceFull: new URLSearchParams(query).get('quality') === 'full',
+  };
 }
