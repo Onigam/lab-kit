@@ -87,26 +87,36 @@ export function planQuality(d: DeviceInfo): QualityPlan {
 
 /**
  * Lowers the pixel ratio of a device whose frames are slow, one step at a time (2 → 1.75 → 1.5 → 1.25 → 1), never back up in
- * the same visit (no back and forth). It looks at the real time between frames: when the median of the last `window` frames
- * is over `slowMs` (under about 45 frames a second), it steps down and waits `cooldownMs` before judging again. Intervals over
- * 250 ms (a hidden tab, a world being built) are ignored.
+ * the same visit (no back and forth). It looks at the real time between frames: when the median of the frames it has seen is
+ * over `slowMs` (under about 45 frames a second), it steps down and waits `cooldownMs` before judging again. It judges after
+ * `window` frames, or after `judgeMs` of frames (at least 5) on a device too slow to show 90 frames soon: a device at 2 to 5
+ * frames a second steps down within about 2 s (0.5.0 ignored every frame over 250 ms, so it never did). Only a gap over
+ * `gapMs` is ignored: a hidden tab, a world being built.
  */
 export class FrameGovernor {
   readonly levels: number[];
   private level: number;
   private samples: number[] = [];
+  private sampledMs = 0;
   private waitUntil = 0;
   private readonly window: number;
   private readonly slowMs: number;
   private readonly cooldownMs: number;
+  private readonly judgeMs: number;
+  private readonly gapMs: number;
 
-  constructor(startRatio: number, opts: { window?: number; slowMs?: number; cooldownMs?: number } = {}) {
+  constructor(
+    startRatio: number,
+    opts: { window?: number; slowMs?: number; cooldownMs?: number; judgeMs?: number; gapMs?: number } = {},
+  ) {
     this.levels = [2, 1.75, 1.5, 1.25, 1].filter((r) => r <= startRatio + 1e-6);
     if (!this.levels.length || this.levels[0] < startRatio - 1e-6) this.levels.unshift(startRatio);
     this.level = 0;
     this.window = opts.window ?? 90;
     this.slowMs = opts.slowMs ?? 22;
     this.cooldownMs = opts.cooldownMs ?? 3000;
+    this.judgeMs = opts.judgeMs ?? 2000;
+    this.gapMs = opts.gapMs ?? 2500;
   }
 
   /** The pixel ratio it holds now. */
@@ -116,16 +126,19 @@ export class FrameGovernor {
 
   /** One frame took `intervalMs` (real time) and ended at `nowMs`; returns the new pixel ratio when it steps down. */
   push(intervalMs: number, nowMs: number): number | null {
-    if (!(intervalMs > 0) || intervalMs > 250) return null;
+    if (!(intervalMs > 0) || intervalMs > this.gapMs) return null;
     if (nowMs < this.waitUntil) return null;
     this.samples.push(intervalMs);
-    if (this.samples.length < this.window) return null;
-    if (this.samples.length > this.window) this.samples.shift();
+    this.sampledMs += intervalMs;
+    if (this.samples.length > this.window) this.sampledMs -= this.samples.shift()!;
+    const enough = this.samples.length >= this.window || (this.samples.length >= 5 && this.sampledMs >= this.judgeMs);
+    if (!enough) return null;
     const sorted = [...this.samples].sort((a, b) => a - b);
     const median = sorted[sorted.length >> 1];
     if (median <= this.slowMs || this.level >= this.levels.length - 1) return null;
     this.level++;
     this.samples = [];
+    this.sampledMs = 0;
     this.waitUntil = nowMs + this.cooldownMs;
     return this.ratio;
   }

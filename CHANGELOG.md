@@ -2,6 +2,18 @@
 
 Releases of `@onigam/lab-kit`. A lab moves to a release with `npm run kit:bump` (or by changing the tag in its `package.json`).
 
+## 0.5.1 (2026-11-01): fixes from the ram pump's reviews
+
+- **Films' ambient occlusion respects the section** (film v5, A1). three's GTAO drew the scene again with one normal material,
+  so the clipping planes of the section were lost. The occlusion came from what the section had cut away: dark folds on the flat
+  cut faces of the catchment, buried pipes showing through, grass tufts as grey ghosts on the floor, and smudges inside the ram's
+  air bell. Each mesh now gets a normal material with its own clipping planes and side. The meshes that never show (shadow
+  casters without colour) are left out.
+- **Adaptive quality judges slow devices too** (ram pump review, D6). 0.5.0 ignored every frame over 250 ms, so a device at
+  under 4 frames a second never lowered its pixel ratio. The governor now judges after 90 frames or after 2 s of frames (at
+  least 5), whichever comes first: frames of 200 to 717 ms step down within about 2 s. A gap over 2.5 s is still ignored (a
+  world being built), and so is a hidden tab.
+
 ## 0.5.0 (2026-10-31): a stable, warmer picture
 
 The picture rule « a warm, full, stable picture » (`docs/lab-quality.md` §3), from the owner's remark on the ram pump film.

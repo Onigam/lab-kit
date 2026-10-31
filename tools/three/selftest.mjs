@@ -89,7 +89,30 @@ test('it never goes below 1 nor back up', () => {
 });
 test('long gaps (a hidden tab, a world being built) are ignored', () => {
   const g = new K.FrameGovernor(2);
-  assert.equal(run(g, 400, 300).last, null);
+  assert.equal(run(g, 3000, 50).last, null);
+  assert.equal(g.ratio, 2);
+});
+test('a device at 2 to 5 frames a second steps down within about 2 s (review D6)', () => {
+  for (const ms of [200, 400, 717]) {
+    const g = new K.FrameGovernor(1.5);
+    let t = 0;
+    let at = null;
+    for (let i = 0; i < 40 && at === null; i++) {
+      t += ms;
+      if (g.push(ms, t) !== null) at = t;
+    }
+    assert.ok(at !== null && at <= Math.max(2000, 5 * ms) + 1e-6, `${ms} ms frames: stepped at ${at}`);
+    assert.equal(g.ratio, 1.25);
+  }
+});
+test('one long frame among fast ones (a world being built) does not step down', () => {
+  const g = new K.FrameGovernor(2);
+  let t = 0;
+  for (let i = 0; i < 300; i++) {
+    const ms = i === 100 ? 1500 : 16.7;
+    t += ms;
+    assert.equal(g.push(ms, t), null);
+  }
 });
 test('a device at pixel ratio 1.3 starts at 1.3', () => {
   const g = new K.FrameGovernor(1.3, { cooldownMs: 0 });

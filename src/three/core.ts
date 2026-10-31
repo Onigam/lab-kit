@@ -392,6 +392,11 @@ export class Stage {
   /** A slow device lowers its pixel ratio, one step at a time (see `FrameGovernor`). */
   private watchFrameTime(): void {
     if (!this.lookOptions.adaptive) return;
+    // a hidden tab draws nothing: its gap is not a slow frame
+    if (typeof document !== 'undefined' && document.hidden) {
+      this.lastFrameAt = 0;
+      return;
+    }
     const now = performance.now();
     const interval = this.lastFrameAt ? now - this.lastFrameAt : 0;
     this.lastFrameAt = now;

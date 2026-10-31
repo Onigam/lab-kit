@@ -185,9 +185,88 @@ export class FilmSSAAPass extends SSAARenderPass {
   }
 }
 
-/** Ambient occlusion for films (three's GTAO, which draws the scene once more for its normals). */
+/**
+ * three's GTAO draws the scene once more, every mesh with one normal material: the section's clipping planes (they belong to the
+ * materials) were lost, so the occlusion came from what the section had cut away (dark folds on the flat cut faces, buried pipes
+ * showing through, film v5 A1). This pass gives each mesh a normal material with its own material's clipping planes and side,
+ * and leaves out the meshes that never show (shadow casters without colour).
+ */
+class SectionAwareGTAOPass extends GTAOPass {
+  private normals = new Map<THREE.Material, THREE.MeshNormalMaterial>();
+
+  private normalFor(src: THREE.Material): THREE.MeshNormalMaterial {
+    let m = this.normals.get(src);
+    if (!m) {
+      m = new THREE.MeshNormalMaterial();
+      this.normals.set(src, m);
+    }
+    m.side = src.side;
+    m.clippingPlanes = src.clippingPlanes;
+    m.clipIntersection = src.clipIntersection;
+    return m;
+  }
+
+  /** three's (untyped) `_renderOverride`, called by `render` for the normal pass and the others. */
+  _renderOverride(
+    renderer: THREE.WebGLRenderer,
+    overrideMaterial: THREE.Material,
+    renderTarget: THREE.WebGLRenderTarget | null,
+    clearColor: THREE.ColorRepresentation,
+    clearAlpha: number,
+  ): void {
+    if (overrideMaterial !== this.normalMaterial) {
+      const base = (GTAOPass.prototype as unknown as { _renderOverride: SectionAwareGTAOPass['_renderOverride'] })
+        ._renderOverride;
+      base.call(this, renderer, overrideMaterial, renderTarget, clearColor, clearAlpha);
+      return;
+    }
+    const swapped: [THREE.Mesh, THREE.Material | THREE.Material[]][] = [];
+    const hidden: THREE.Object3D[] = [];
+    this.scene.traverse((o) => {
+      const mesh = o as THREE.Mesh;
+      if (!mesh.isMesh || !mesh.visible) return;
+      const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+      // a mesh that never shows (a shadow caster with no colour) casts no occlusion either; transparent water and glass do, as
+      // in three's pass (left out, the occlusion of what lies behind them showed through them)
+      const solid = mats.find((m) => m.colorWrite !== false);
+      if (!solid) {
+        mesh.visible = false;
+        hidden.push(mesh);
+        return;
+      }
+      swapped.push([mesh, mesh.material]);
+      mesh.material = this.normalFor(solid);
+    });
+    const color = new THREE.Color();
+    renderer.getClearColor(color);
+    const alpha = renderer.getClearAlpha();
+    const auto = renderer.autoClear;
+    try {
+      renderer.setRenderTarget(renderTarget);
+      renderer.autoClear = false;
+      renderer.setClearColor(clearColor);
+      renderer.setClearAlpha(clearAlpha || 0);
+      renderer.clear();
+      renderer.render(this.scene, this.camera);
+    } finally {
+      for (const [mesh, mat] of swapped) mesh.material = mat;
+      for (const o of hidden) o.visible = true;
+      renderer.autoClear = auto;
+      renderer.setClearColor(color);
+      renderer.setClearAlpha(alpha);
+    }
+  }
+
+  override dispose(): void {
+    for (const m of this.normals.values()) m.dispose();
+    this.normals.clear();
+    super.dispose();
+  }
+}
+
+/** Ambient occlusion for films (three's GTAO, which draws the scene once more for its normals), clipped as the section is. */
 export function makeAO(scene: THREE.Scene, camera: THREE.PerspectiveCamera): GTAOPass {
-  const pass = new GTAOPass(scene, camera, 1, 1);
+  const pass = new SectionAwareGTAOPass(scene, camera, 1, 1);
   pass.output = GTAOPass.OUTPUT.Default;
   return pass;
 }

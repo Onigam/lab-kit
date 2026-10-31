@@ -106,8 +106,8 @@ more saturated (an OSB or a plaster wall turns orange), so check the palette bef
 
 **Devices.** At start the stage looks at the device: `navigator.deviceMemory` of 2 GB or less, or a GPU without 4 samples, draws
 FXAA instead of MSAA (at pixel ratio 1.5 with little memory); everything else gets MSAA 4 up to pixel ratio 2. While the visitor
-looks, a device whose frames take more than 22 ms (median of 90) lowers its pixel ratio one step (2, 1.75, 1.5, 1.25, 1), at most
-every 3 s, never back up in the same visit. `stage.quality` tells what was chosen.
+looks, a device whose frames take more than 22 ms (median of the last 90, or of the last 2 s on a very slow device) lowers its
+pixel ratio one step (2, 1.75, 1.5, 1.25, 1), at most every 3 s, never back up in the same visit. `stage.quality` tells what was chosen.
 
 **Films and automated browsers.** A browser driven by a tool (`navigator.webdriver`, as Puppeteer is) and an address with
 `?quality=full` always get the full, fixed picture: MSAA 4, pixel ratio up to 2, no adaptation, the same pixels frame for frame.
@@ -116,7 +116,8 @@ A film capture adds its extras with `Stage.setLook`:
 ```ts
 window.__lab.stage.setLook({ adaptive: false, supersample: 3, ao: true });
 // supersample: the scene drawn 2^n times with sub-pixel jitter (3 = 8 samples), shadows once per frame
-// ao: three's GTAO in the worlds whose look asks for it (by default the wantsEnv worlds, never a landscape)
+// ao: three's GTAO in the worlds whose look asks for it (by default the wantsEnv worlds, never a landscape), clipped by the
+//     section as the picture is
 ```
 
 `stage.look` reads the current options; `setLook` keeps the same composer object (a capture that wraps `stage.composer.render`
