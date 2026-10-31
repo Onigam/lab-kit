@@ -1,0 +1,54 @@
+type Child = Node | string | number | null | undefined | false;
+type Attrs = Record<string, string | number | boolean | EventListener | undefined>;
+export declare function h<K extends keyof HTMLElementTagNameMap>(tag: K, attrs?: Attrs, ...children: Child[]): HTMLElementTagNameMap[K];
+export declare function append(el: Element, children: Child[]): void;
+/**
+ * Render trusted bilingual content that may contain **bold** markers.
+ * Text is inserted with text nodes only (no innerHTML).
+ */
+export declare function rich(text: string): DocumentFragment;
+/** Render a text that may hold several paragraphs (a blank line starts a new one), each with **bold** markers. */
+export declare function paragraphs(text: string, cls?: string): HTMLParagraphElement[];
+/**
+ * Tell the stylesheet where a scrolling element has more to show. Sets `--fade-start` and `--fade-end` on `el` (how much
+ * to fade at each edge where its content goes on) and `data-more="start end"` on `host` (default `el`), so a scroller
+ * without a visible scrollbar (the phone rail and toolbar) can show an arrow and a fade at its cut edge.
+ */
+export declare function watchOverflow(el: HTMLElement, host?: HTMLElement, fade?: number): void;
+/** Replace the children of `el`, skipping null/false entries. */
+export declare function fill(el: Element, ...children: Child[]): void;
+export declare function clear(el: Element): void;
+/** Inline SVG icon from a path list (24×24, stroke icons). */
+export declare function icon(paths: string, size?: number): SVGSVGElement;
+export declare const ICONS: {
+    explore: string;
+    assembly: string;
+    install: string;
+    sim: string;
+    plans: string;
+    download: string;
+    print: string;
+    lessons: string;
+    parts: string;
+    about: string;
+    prev: string;
+    next: string;
+    play: string;
+    pause: string;
+    home: string;
+    close: string;
+    video: string;
+    focus: string;
+    isolate: string;
+    reset: string;
+    chevron: string;
+    bolt: string;
+    drop: string;
+    sun: string;
+    warn: string;
+    ok: string;
+    menu: string;
+    speaker: string;
+    subtitles: string;
+};
+export {};
