@@ -17,7 +17,7 @@ this lab (§5), and `pelton-lab/docs/research.md` or `mill-lab/docs/research.md`
 ## What you deliver: `docs/research.md`
 
 - **§0 The plan against the bar**: the 4+ worlds (the setting, the machine, at least two detailed sub-assemblies or rooms, one
-  of them where the current or the heat goes: equipment room, battery, store), the 36+ part ids per world, the 8+ sheets, the
+  of them where the current or the heat goes: equipment room, battery, store), the 36+ part ids across the worlds, the 8+ sheets, the
   6+ lessons, the spoken guide, with the cost in tokens and ElevenLabs credits. The owner says yes to this scope, not a smaller
   one; never propose a « lighter » level without saying plainly that it is below the bar.
 - **Sources**: each with its link, author, date and what it gives; the main video's outline with timestamps.
