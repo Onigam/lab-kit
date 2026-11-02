@@ -889,15 +889,17 @@ export class Stage {
     if (this.declutterIn > 0) return;
     this.declutterIn = 0.12;
     const rank = (e: LabelEntry) => (e.hotspot.partId === this.selected ? 0 : e.hotspot.minor ? 2 : 1);
+    const shown = (this.labelSets.get(this.active.id) ?? []).filter((e) => e.object.visible && e.el.style.display !== 'none');
+    // a name stays clear of the other names kept so far and of every other label's dot, which folding does not remove
+    const dots = shown.map((e) => ({ e, box: (e.el.firstElementChild as HTMLElement).getBoundingClientRect() }));
     const kept: DOMRect[] = [];
-    for (const e of (this.labelSets.get(this.active.id) ?? []).slice().sort((a, b) => rank(a) - rank(b))) {
-      if (!e.object.visible) continue;
+    for (const e of shown.slice().sort((a, b) => rank(a) - rank(b))) {
       const r = e.text.getBoundingClientRect();
       if (!r.width) continue;
       // a folded name needs a little more room to come back, so that it does not blink as the camera moves
       const m = e.el.classList.contains('hotspot--dot') ? 6 : 0;
-      const hit = kept.some((k) => k.left < r.right + m && r.left < k.right + m && k.top < r.bottom + m && r.top < k.bottom + m);
-      const fold = hit && rank(e) > 0;
+      const on = (k: DOMRect) => k.left < r.right + m && r.left < k.right + m && k.top < r.bottom + m && r.top < k.bottom + m;
+      const fold = rank(e) > 0 && (kept.some(on) || dots.some((d) => d.e !== e && on(d.box)));
       this.foldLabel(e, fold);
       if (fold) this.anyFolded = true;
       else kept.push(r);
