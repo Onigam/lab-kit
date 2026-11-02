@@ -1,4 +1,5 @@
 import { h } from './dom';
+import { onThemeChange } from './theme';
 
 // Small canvas charts with a crosshair tooltip. One y-axis per chart (no dual axes);
 // several measures are shown as small multiples instead.
@@ -10,9 +11,30 @@ export const SERIES_COLORS = {
   dump: '#c4692c',
 };
 
-const INK = '#1d2b3a';
-const INK_2 = '#5b6878';
-const GRID = 'rgba(29,43,58,0.10)';
+/** The frame's colours for a canvas, read from the stylesheet (a canvas cannot use `var()`), once per theme. */
+let palette: Record<string, string> | null = null;
+onThemeChange(() => (palette = null));
+
+function colours(): Record<string, string> {
+  if (palette) return palette;
+  const css = typeof getComputedStyle === 'function' ? getComputedStyle(document.documentElement) : null;
+  const read = (name: string, light: string) => css?.getPropertyValue(name).trim() || light;
+  palette = {
+    ink: read('--ink', '#12202b'),
+    ink2: read('--ink-2', '#425160'),
+    grid: read('--line', 'rgb(18 32 43 / 0.16)'),
+    mark: read('--line-2', 'rgb(18 32 43 / 0.32)'),
+    surface: read('--card', '#f8f9f6'),
+    [SERIES_COLORS.hydro]: read('--water', SERIES_COLORS.hydro),
+    [SERIES_COLORS.pv]: read('--sun', SERIES_COLORS.pv),
+    [SERIES_COLORS.load]: read('--violet', SERIES_COLORS.load),
+    [SERIES_COLORS.dump]: read('--copper', SERIES_COLORS.dump),
+  };
+  return palette;
+}
+
+/** A series colour on the current theme: the shared four follow the frame, a lab's own colour stays as it is. */
+const tone = (color: string): string => colours()[color] ?? color;
 
 export interface SeriesDef {
   key: string;
@@ -105,6 +127,7 @@ export class LineChart {
     const w = this.el.clientWidth || 300;
     const H = this.opts.height;
     const ctx = setupCanvas(this.canvas, w, H);
+    const { ink: INK, ink2: INK_2, grid: GRID, mark: MARK, surface: SURFACE } = colours();
     const pad = { l: 42, r: 10, t: 8, b: 18 };
     const pw = w - pad.l - pad.r;
     const ph = H - pad.t - pad.b;
@@ -116,7 +139,9 @@ export class LineChart {
           h(
             'span',
             { class: 'chart__key' },
-            h('i', { style: s.dash ? `border-top:2px dashed ${s.color};background:none` : `background:${s.color}` }),
+            h('i', {
+              style: s.dash ? `border-top:2px dashed ${tone(s.color)};background:none` : `background:${tone(s.color)}`,
+            }),
             s.label(),
           ),
         ),
@@ -165,7 +190,7 @@ export class LineChart {
     // series: 2px lines with rounded joins
     for (const s of this.opts.series) {
       const ys = this.ys[s.key] ?? [];
-      ctx.strokeStyle = s.color;
+      ctx.strokeStyle = tone(s.color);
       ctx.lineWidth = s.bold ? 3 : 2;
       ctx.setLineDash(s.dash ? [5, 4] : []);
       ctx.lineJoin = 'round';
@@ -191,7 +216,7 @@ export class LineChart {
       const mx = X(m.x);
       ctx.save();
       ctx.setLineDash([4, 3]);
-      ctx.strokeStyle = 'rgba(29,43,58,0.45)';
+      ctx.strokeStyle = MARK;
       ctx.lineWidth = 1;
       if (m.y === undefined) {
         ctx.beginPath();
@@ -206,11 +231,11 @@ export class LineChart {
       ctx.textBaseline = 'top';
       if (m.y !== undefined && Number.isFinite(m.y)) {
         const my = Y(Math.min(m.y, yMax));
-        ctx.fillStyle = '#fbf8f2';
+        ctx.fillStyle = SURFACE;
         ctx.beginPath();
         ctx.arc(mx, my, 6.5, 0, Math.PI * 2);
         ctx.fill();
-        ctx.fillStyle = m.color ?? SERIES_COLORS.dump;
+        ctx.fillStyle = tone(m.color ?? SERIES_COLORS.dump);
         ctx.beginPath();
         ctx.arc(mx, my, 4.5, 0, Math.PI * 2);
         ctx.fill();
@@ -234,7 +259,7 @@ export class LineChart {
         }
       });
       const cx = X(this.xs[i]);
-      ctx.strokeStyle = 'rgba(29,43,58,0.35)';
+      ctx.strokeStyle = MARK;
       ctx.lineWidth = 1;
       ctx.beginPath();
       ctx.moveTo(cx, pad.t);
@@ -243,11 +268,11 @@ export class LineChart {
       for (const s of this.opts.series) {
         const v = this.ys[s.key]?.[i];
         if (v === undefined || !Number.isFinite(v)) continue;
-        ctx.fillStyle = '#fbf8f2';
+        ctx.fillStyle = SURFACE;
         ctx.beginPath();
         ctx.arc(cx, Y(v), 5, 0, Math.PI * 2);
         ctx.fill();
-        ctx.fillStyle = s.color;
+        ctx.fillStyle = tone(s.color);
         ctx.beginPath();
         ctx.arc(cx, Y(v), 3.5, 0, Math.PI * 2);
         ctx.fill();
@@ -258,7 +283,7 @@ export class LineChart {
           h(
             'div',
             { class: 'chart__tip-row' },
-            h('i', { style: `background:${s.color}` }),
+            h('i', { style: `background:${tone(s.color)}` }),
             h('b', {}, Number.isFinite(this.ys[s.key]?.[i]) ? this.opts.yFmt(this.ys[s.key][i]) : '—'),
             h('span', {}, s.label()),
           ),
@@ -298,6 +323,7 @@ export class CurveChart {
     const w = this.el.clientWidth || 300;
     const H = this.height;
     const ctx = setupCanvas(this.canvas, w, H);
+    const { ink: INK, ink2: INK_2, grid: GRID, mark: MARK, surface: SURFACE } = colours();
     const pad = { l: 42, r: 12, t: 12, b: 20 };
     const pw = w - pad.l - pad.r;
     const ph = H - pad.t - pad.b;
@@ -331,7 +357,7 @@ export class CurveChart {
     ctx.textAlign = 'right';
     ctx.fillText(`${Math.round(xMax)} tr/min`, w - pad.r, H - 14);
 
-    ctx.strokeStyle = SERIES_COLORS.hydro;
+    ctx.strokeStyle = tone(SERIES_COLORS.hydro);
     ctx.lineWidth = 2;
     ctx.beginPath();
     this.data.forEach(([x, y], i) => (i ? ctx.lineTo(X(x), Y(y)) : ctx.moveTo(X(x), Y(y))));
@@ -340,7 +366,7 @@ export class CurveChart {
     // optimum marker
     const opt = this.data.reduce((a, b) => (b[1] > a[1] ? b : a));
     ctx.setLineDash([3, 3]);
-    ctx.strokeStyle = 'rgba(29,43,58,0.4)';
+    ctx.strokeStyle = MARK;
     ctx.beginPath();
     ctx.moveTo(X(opt[0]), Y(opt[1]));
     ctx.lineTo(X(opt[0]), pad.t + ph);
@@ -356,11 +382,11 @@ export class CurveChart {
     if (px > 0) {
       const cx = X(Math.min(px, xMax));
       const cy = Y(Math.min(py, yMax));
-      ctx.fillStyle = '#fbf8f2';
+      ctx.fillStyle = SURFACE;
       ctx.beginPath();
       ctx.arc(cx, cy, 7, 0, Math.PI * 2);
       ctx.fill();
-      ctx.fillStyle = SERIES_COLORS.dump;
+      ctx.fillStyle = tone(SERIES_COLORS.dump);
       ctx.beginPath();
       ctx.arc(cx, cy, 5, 0, Math.PI * 2);
       ctx.fill();

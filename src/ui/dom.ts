@@ -100,7 +100,7 @@ export function icon(paths: string, size = 20): SVGSVGElement {
   svg.setAttribute('height', String(size));
   svg.setAttribute('fill', 'none');
   svg.setAttribute('stroke', 'currentColor');
-  svg.setAttribute('stroke-width', '1.7');
+  svg.setAttribute('stroke-width', '1.8');
   svg.setAttribute('stroke-linecap', 'round');
   svg.setAttribute('stroke-linejoin', 'round');
   for (const d of paths.split('|')) {
@@ -135,10 +135,12 @@ export const ICONS = {
   chevron: 'M6 9l6 6 6-6',
   bolt: 'M13 3L5 14h6l-1 7 8-11h-6z',
   drop: 'M12 3s6 7 6 11a6 6 0 0 1-12 0c0-4 6-11 6-11z',
-  sun: 'M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8z|M12 2v2|M12 20v2|M4.9 4.9l1.4 1.4|M17.7 17.7l1.4 1.4|M2 12h2|M20 12h2|M4.9 19.1l1.4-1.4|M17.7 6.3l1.4-1.4',
+  sun: 'M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8z|M12 2v2.5|M12 19.5V22|M2 12h2.5|M19.5 12H22|M4.9 4.9l1.8 1.8|M17.3 17.3l1.8 1.8|M4.9 19.1l1.8-1.8|M17.3 6.7l1.8-1.8',
+  moon: 'M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5Z',
+  labs: 'M4 4h6v6H4z|M14 4h6v6h-6z|M4 14h6v6H4z|M14 14h6v6h-6z',
   warn: 'M12 4l9 16H3z|M12 10v4|M12 17v.01',
   ok: 'M5 12l4 4 10-10',
-  menu: 'M4 7h16|M4 12h16|M4 17h16',
+  menu: 'M4 8h16|M4 16h16',
   speaker: 'M4 9.5v5h3.5L12 18.5v-13L7.5 9.5H4z|M15.5 9a4 4 0 0 1 0 6|M18 6.5a7.5 7.5 0 0 1 0 11',
   subtitles: 'M4 6h16v12H4z|M7.5 11h3|M13.5 11h3|M7.5 14.5h9',
 };

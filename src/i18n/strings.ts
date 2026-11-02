@@ -111,6 +111,16 @@ const COMMON = {
     'Drag: orbit · right-click / two fingers: pan · wheel / pinch: zoom · click: select',
   ],
   menu: ['Menu', 'Menu'],
+  // the family: labs.onigam.io
+  allLabs: ['Tous les labs', 'All labs'],
+  brandHome: ['Onigam Labs, tous les labs', 'Onigam Labs, all labs'],
+  familyText: [
+    'Ce lab fait partie d’Onigam Labs : des laboratoires 3D gratuits, en français et en anglais, pour comprendre l’énergie.',
+    'This lab is part of Onigam Labs: free 3D labs, in French and English, to understand energy.',
+  ],
+  privacy: ['Confidentialité', 'Privacy'],
+  themeToDark: ['Passer en mode sombre', 'Switch to dark mode'],
+  themeToLight: ['Passer en mode clair', 'Switch to light mode'],
   webglTitle: ['Ce navigateur ne peut pas afficher la 3D', 'This browser cannot show the 3D view'],
   webglBody: [
     'Le labo dessine ses maquettes avec WebGL, que ce navigateur ou cet appareil n’offre pas (ou plus : GPU bloqué, mode économie d’énergie, navigateur trop ancien).',

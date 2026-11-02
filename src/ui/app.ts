@@ -1,5 +1,6 @@
 import { getLang, onLangChange, setLang, t, tr, colon, type CommonKey } from '../i18n';
 import type { Stage, ViewOpts } from '../three';
+import { labTitle, markSvg, showcaseUrl } from './brand';
 import { AppContext, hasMode } from './context';
 import { guideDef, stepScene, type DisplayController } from './display';
 import { fill, h, icon, ICONS, rich, watchOverflow } from './dom';
@@ -13,6 +14,7 @@ import { renderPartPanel } from './panels/part';
 import { renderPlansPanel } from './panels/plans';
 import { bindSheetDrag } from './sheet';
 import type { Mode, Store, UiState } from './state';
+import { isDark, onThemeChange, toggleTheme } from './theme';
 import { DrawingViewer } from './viewer';
 
 // Application shell: header, mode rail, contextual right panel, viewport toolbar and
@@ -50,6 +52,10 @@ export class App<S extends LabSim = any> {
   private rail = h('nav', { class: 'rail' });
   /** The modes row: it scrolls on a phone (a fade shows where it goes on); on a desktop it is transparent to layout. */
   private railScroll = h('div', { class: 'rail__scroll' });
+  /** The way back to the showcase: a link, not a mode (it stays out of the modes' row and of `.rail button`). */
+  private railHome = h('a', { class: 'rail__home' });
+  /** The theme button is the same element every time: it keeps the keyboard focus. */
+  private themeBtn = h('button', { class: 'icon-btn theme-btn', type: 'button', onclick: () => toggleTheme() });
   private panel = h('aside', { class: 'panel' });
   private panelBody = h('div', { class: 'panel__body' });
   private grip = h('button', { class: 'panel__grip', 'aria-expanded': 'false' });
@@ -91,7 +97,7 @@ export class App<S extends LabSim = any> {
       isOpen: () => store.state.sheet,
       setOpen: (sheet) => store.set({ sheet }),
     });
-    this.rail.append(this.railScroll);
+    this.rail.append(this.railScroll, this.railHome);
     this.toolbar.append(this.toolbarRow);
     this.viewer = new DrawingViewer(
       () => def.plans?.sheets ?? [],
@@ -121,6 +127,11 @@ export class App<S extends LabSim = any> {
       if (this.store.state.mode !== 'sim') this.renderPanel();
     });
     onLangChange(() => this.renderAll());
+    onThemeChange(() => {
+      this.renderHeader();
+      // the charts read the frame's colours when they are drawn
+      if (this.store.state.mode === 'sim') this.simPanel?.render();
+    });
     this.renderAll();
     this.updateInsets(false);
     this.warmLater(store.state.scene);
@@ -308,7 +319,7 @@ export class App<S extends LabSim = any> {
   renderAll(): void {
     document.documentElement.lang = getLang();
     if (this.store.state.mode === 'plans') this.showDrawing(true);
-    document.title = tr(this.def.brand.title);
+    document.title = labTitle(this.def.brand.title);
     this.renderHeader();
     this.renderRail();
     this.renderPanel();
@@ -326,13 +337,35 @@ export class App<S extends LabSim = any> {
     // the speaker button is the same element every time: keep the keyboard focus on it
     const speaker = this.narration?.speaker;
     const speakerFocused = !!speaker && document.activeElement === speaker;
+    const themeFocused = document.activeElement === this.themeBtn;
+    const dark = isDark();
+    const themeLabel = t(dark ? 'themeToLight' : 'themeToDark');
+    this.themeBtn.setAttribute('aria-label', themeLabel);
+    this.themeBtn.title = themeLabel;
+    fill(this.themeBtn, icon(dark ? ICONS.sun : ICONS.moon, 18));
     fill(
       this.header,
       h(
         'div',
         { class: 'brand' },
-        h('img', { src: this.def.brand.icon, alt: '', width: 34, height: 34 }),
-        h('div', {}, h('h1', {}, tr(this.def.brand.title)), h('p', {}, tr(this.def.brand.tagline))),
+        // the mark is the way home on every width; the words beside it repeat it for a pointer and go first when room is short
+        h(
+          'a',
+          { class: 'brand__mark', href: showcaseUrl(), 'aria-label': t('brandHome'), title: t('brandHome') },
+          markSvg(),
+        ),
+        h(
+          'div',
+          { class: 'brand__text' },
+          h(
+            'div',
+            { class: 'brand__line' },
+            h('a', { class: 'brand__home', href: showcaseUrl(), tabindex: -1, 'aria-hidden': 'true' }, 'Onigam Labs'),
+            h('span', { class: 'brand__sep', 'aria-hidden': 'true' }, '/'),
+            h('h1', {}, labTitle(this.def.brand.title)),
+          ),
+          h('p', {}, tr(this.def.brand.tagline)),
+        ),
       ),
       h(
         'div',
@@ -363,9 +396,6 @@ export class App<S extends LabSim = any> {
               h('i', { style: `--p:${(done / lessons.length) * 100}%` }),
             )
           : null,
-        this.narration?.speakerShown
-          ? h('span', { class: 'narr-anchor' }, this.narration.speaker, this.narration.invite)
-          : null,
         h(
           'div',
           { class: 'segmented lang-switch' },
@@ -373,9 +403,14 @@ export class App<S extends LabSim = any> {
             h('button', { class: getLang() === l ? 'is-active' : '', onclick: () => setLang(l) }, l.toUpperCase()),
           ),
         ),
+        this.narration?.speakerShown
+          ? h('span', { class: 'narr-anchor' }, this.narration.speaker, this.narration.invite)
+          : null,
+        this.themeBtn,
       ),
     );
     if (speakerFocused) speaker.focus({ preventScroll: true });
+    if (themeFocused) this.themeBtn.focus({ preventScroll: true });
   }
 
   /** Modes with content in this lab (a mode without content is hidden, never reinvented). */
@@ -404,6 +439,10 @@ export class App<S extends LabSim = any> {
         ),
       ),
     );
+    this.railHome.setAttribute('href', showcaseUrl('labs'));
+    this.railHome.setAttribute('aria-label', t('brandHome'));
+    this.railHome.title = t('brandHome');
+    fill(this.railHome, icon(ICONS.labs, 21), h('span', {}, t('allLabs')));
     this.revealActiveMode();
   }
 

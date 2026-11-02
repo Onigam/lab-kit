@@ -1,10 +1,12 @@
 import { configureI18n } from '../i18n';
 import { lazyBuilder, Stage, type ViewOpts } from '../three';
 import { App } from './app';
+import { applyFavicon } from './brand';
 import type { AppContext } from './context';
 import { DisplayController } from './display';
 import type { LabDefinition, LabSim } from './lab';
 import { createStore, type Store } from './state';
+import { initTheme } from './theme';
 import { showUnsupported, webglAvailable } from './unsupported';
 
 export interface MountOptions {
@@ -30,6 +32,8 @@ export interface MountedLab {
  */
 export function mountLab<S extends LabSim>(def: LabDefinition<S>, opts: MountOptions): MountedLab | null {
   configureI18n({ storageKey: `${def.id}:lang` });
+  initTheme();
+  applyFavicon();
   const store = createStore(def.defaultScene);
   let app: App<S> | null = null;
 

@@ -14,7 +14,7 @@ function lineSample(dash: string, width: number): SVGSVGElement {
   svg.setAttribute('viewBox', '0 0 34 8');
   svg.setAttribute('aria-hidden', 'true');
   const ln = document.createElementNS(ns, 'line');
-  for (const [k, v] of Object.entries({ x1: 1, x2: 33, y1: 4, y2: 4, stroke: '#1d2b3a', 'stroke-width': width })) {
+  for (const [k, v] of Object.entries({ x1: 1, x2: 33, y1: 4, y2: 4, stroke: 'currentColor', 'stroke-width': width })) {
     ln.setAttribute(k, String(v));
   }
   if (dash) ln.setAttribute('stroke-dasharray', dash);

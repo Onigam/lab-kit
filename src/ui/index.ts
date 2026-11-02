@@ -1,4 +1,5 @@
 export * from './app';
+export * from './brand';
 export * from './charts';
 export * from './context';
 export * from './display';
@@ -9,6 +10,7 @@ export * from './narration';
 export * from './narration-ui';
 export * from './panel-size';
 export * from './state';
+export * from './theme';
 export * from './unsupported';
 export * from './viewer';
 export * from './widgets';

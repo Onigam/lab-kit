@@ -102,7 +102,8 @@ export interface LabDefinition<S extends LabSim = LabSim> {
   /** Short id, also the prefix of the keys the lab stores in the browser. */
   id: string;
   /** `title` may be a plain name (same in both languages) or a bilingual `l(fr, en)`. */
-  brand: { title: string | L; tagline: L; icon: string };
+  /** `icon` is no longer drawn: the header carries the Onigam mark and the tab its favicon (see brand.ts). */
+  brand: { title: string | L; tagline: L; icon?: string };
   sim: S;
   scenes: SceneDef[];
   defaultScene: string;

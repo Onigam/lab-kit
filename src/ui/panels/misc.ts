@@ -1,5 +1,6 @@
 import type { Lesson, PartCategory } from '../../content/types';
 import { t, tr, type CommonKey } from '../../i18n';
+import { markSvg, privacyUrl, showcaseUrl } from '../brand';
 import type { AppContext } from '../context';
 import { fill, h, icon, ICONS, rich } from '../dom';
 import { listenRow } from '../narration-ui';
@@ -258,5 +259,17 @@ export function renderAboutPanel(ctx: AppContext, root: HTMLElement): void {
     h('div', { class: 'eyebrow eyebrow--accent' }, t('modeAbout')),
     h('h2', { class: 'panel-title' }, t('aboutTitle')),
     ...ctx.def.about(ctx),
+    h(
+      'section',
+      { class: 'family' },
+      h('div', { class: 'family__name' }, markSvg(24), h('b', {}, 'Onigam Labs')),
+      h('p', {}, t('familyText')),
+      h(
+        'div',
+        { class: 'actions' },
+        h('a', { class: 'btn btn--primary', href: showcaseUrl('labs') }, icon(ICONS.labs, 16), t('allLabs')),
+        h('a', { class: 'btn btn--ghost', href: privacyUrl() }, t('privacy')),
+      ),
+    ),
   );
 }
