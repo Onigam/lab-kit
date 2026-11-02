@@ -52,6 +52,11 @@ export interface SceneModule<S = unknown> {
   near?: number;
   far?: number;
   /**
+   * When every label is on, keep their names apart in this world: a label with no room for its name folds into its dot, until it is pointed at or selected
+   * (the selected part first, then the main labels, then the minor ones, in the order of `hotspots`). Default: no, every name stays.
+   */
+  declutter?: boolean;
+  /**
    * Overview framing of a device world in a wide view: how tight the camera is around its parts, as a multiple of the radius of
    * their bounding sphere (default 0.82; a tall, narrow device needs more, about 1.3). A narrow view, or one with the phone's
    * bottom sheet over it, fits the real extents of the device instead.

@@ -620,6 +620,31 @@ a:hover {
   background: var(--copper);
 }
 
+/* every label on, in a world that asks for it: a name with no room folds into its dot; it comes back when pointed at or selected */
+.hotspot--dot {
+  pointer-events: none;
+}
+
+.hotspot--dot .hotspot__dot {
+  position: relative;
+  pointer-events: auto;
+}
+
+/* a finger's room around the dot */
+.hotspot--dot .hotspot__dot::after {
+  content: '';
+  position: absolute;
+  inset: -9px;
+}
+
+.hotspot--dot .hotspot__text {
+  visibility: hidden;
+}
+
+.hotspot--dot:hover .hotspot__text {
+  visibility: visible;
+}
+
 .hotspot--goto .hotspot__text::after {
   content: ' →';
 }

@@ -172,6 +172,9 @@ export class Stage {
   /** Presses that started on the canvas and have not moved far enough to be a drag yet. */
   private gestures = new Map<number, { x: number; y: number }>();
   active!: SceneModule;
+  /** Labels folded into their dots by `declutterLabels`, and the time left until they are looked at again. */
+  private anyFolded = false;
+  private declutterIn = 0;
   /** Label visibility: 'main' hides minor labels, 'all' shows them, 'none' hides every label. */
   labelMode: 'main' | 'all' | 'none' = 'main';
   selected: string | null = null;
@@ -873,6 +876,42 @@ export class Stage {
     }
   }
 
+  /** Every label on, in a world that asks for it (`SceneModule.declutter`): fold the ones whose name has no room, about eight times a second. */
+  private declutterLabels(dt: number): void {
+    if (!this.active.declutter || this.labelMode !== 'all') {
+      if (this.anyFolded) {
+        for (const entries of this.labelSets.values()) for (const e of entries) this.foldLabel(e, false);
+        this.anyFolded = false;
+      }
+      return;
+    }
+    this.declutterIn -= dt;
+    if (this.declutterIn > 0) return;
+    this.declutterIn = 0.12;
+    const rank = (e: LabelEntry) => (e.hotspot.partId === this.selected ? 0 : e.hotspot.minor ? 2 : 1);
+    const kept: DOMRect[] = [];
+    for (const e of (this.labelSets.get(this.active.id) ?? []).slice().sort((a, b) => rank(a) - rank(b))) {
+      if (!e.object.visible) continue;
+      const r = e.text.getBoundingClientRect();
+      if (!r.width) continue;
+      // a folded name needs a little more room to come back, so that it does not blink as the camera moves
+      const m = e.el.classList.contains('hotspot--dot') ? 6 : 0;
+      const hit = kept.some((k) => k.left < r.right + m && r.left < k.right + m && k.top < r.bottom + m && r.top < k.bottom + m);
+      const fold = hit && rank(e) > 0;
+      this.foldLabel(e, fold);
+      if (fold) this.anyFolded = true;
+      else kept.push(r);
+    }
+  }
+
+  private foldLabel(e: LabelEntry, fold: boolean): void {
+    if (e.el.classList.contains('hotspot--dot') === fold) return;
+    e.el.classList.toggle('hotspot--dot', fold);
+    // its name is hidden from a screen reader with the rest
+    if (fold) e.el.setAttribute('aria-label', e.text.textContent ?? '');
+    else e.el.removeAttribute('aria-label');
+  }
+
   /**
    * The parts under the pointer, nearest first (the clipped-away half of a part in section mode is skipped); `seeThrough` when
    * the surface hit is translucent (a transparent material under full opacity), so a drag can turn around what lies behind it.
@@ -1055,6 +1094,7 @@ export class Stage {
     this.watchFrameTime();
     this.composer.render(dt);
     this.labels.render(this.active.scene, this.camera);
+    this.declutterLabels(dt);
   }
 }
 
