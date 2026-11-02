@@ -160,7 +160,8 @@ To try a kit change in a lab without releasing, `npm install ../lab-kit --no-sav
 
 ## Licence
 
-MIT.
+MIT, except the fonts in `src/fonts`: Space Grotesk and JetBrains Mono, SIL Open Font License 1.1 (notices and provenance in
+[`src/fonts/README.md`](src/fonts/README.md)).
 
 ---
 
