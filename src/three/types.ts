@@ -46,6 +46,12 @@ export interface SceneModule<S = unknown> {
   minDistance: number;
   maxDistance: number;
   /**
+   * The camera's near and far planes in this world, metres. By default 0.1 and 4000 in a world called `site`, 0.01 and 60 in any other.
+   * A world with layers a few millimetres apart seen from tens of metres needs a larger near (depth steps), a tall one a larger far.
+   */
+  near?: number;
+  far?: number;
+  /**
    * Overview framing of a device world in a wide view: how tight the camera is around its parts, as a multiple of the radius of
    * their bounding sphere (default 0.82; a tall, narrow device needs more, about 1.3). A narrow view, or one with the phone's
    * bottom sheet over it, fits the real extents of the device instead.

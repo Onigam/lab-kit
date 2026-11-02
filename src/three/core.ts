@@ -475,8 +475,8 @@ export class Stage {
     this.outline.renderScene = mod.scene;
     this.outlineHover.renderScene = mod.scene;
     const site = id === 'site';
-    this.camera.near = site ? 0.1 : 0.01;
-    this.camera.far = site ? 4000 : 60;
+    this.camera.near = mod.near ?? (site ? 0.1 : 0.01);
+    this.camera.far = mod.far ?? (site ? 4000 : 60);
     this.camera.updateProjectionMatrix();
     this.bindScene();
     this.controls.minDistance = mod.minDistance;
@@ -736,9 +736,11 @@ export class Stage {
   }
 
   frameParts(ids: string[], padding = 1.35, dir?: THREE.Vector3, duration = 0.9): void {
+    const reg = this.active.registry;
     const box = new THREE.Box3();
-    for (const id of ids) box.union(this.active.registry.bounds(id));
-    this.frameBox(box, padding, duration, dir);
+    for (const id of ids) box.union(reg.frameBounds(id));
+    // a part alone may say where to look at it from; several keep the current direction
+    this.frameBox(box, padding, duration, dir ?? (ids.length === 1 ? reg.get(ids[0])?.viewDir : undefined));
   }
 
   home(): void {

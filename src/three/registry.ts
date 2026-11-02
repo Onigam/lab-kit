@@ -20,6 +20,20 @@ export interface PartEntry {
   display: PartDisplay;
   /** Optional extra explode motion (e.g. buckets flying out radially). */
   custom?: (f: number) => void;
+  /** See `PartFraming`. */
+  frame?: THREE.Box3;
+  viewDir?: THREE.Vector3;
+}
+
+/** How a part is framed when it is selected, when its whole box does not say it. Both optional, for `PartRegistry.add`. */
+export interface PartFraming {
+  /**
+   * What `frameParts` brings the camera to, in the world's coordinates with the part assembled (it follows the part's explode), instead of everything
+   * in the part: the end of a 200 m line, the rim of a 16 m slab. `frameAll`, the sheet's envelope and a part shown alone (the others hidden) keep its whole box.
+   */
+  frame?: THREE.Box3;
+  /** Where the camera stands, seen from the part, when this part alone is framed (any length): around what hides it. Without it, the camera keeps its direction. */
+  viewDir?: THREE.Vector3;
 }
 
 export class PartRegistry {
@@ -30,7 +44,13 @@ export class PartRegistry {
    * and after its children parts (if any) were registered, so nested parts keep
    * their own meshes.
    */
-  add(id: string, object: THREE.Object3D, explode = new THREE.Vector3(), custom?: (f: number) => void): THREE.Object3D {
+  add(
+    id: string,
+    object: THREE.Object3D,
+    explode = new THREE.Vector3(),
+    custom?: (f: number) => void,
+    framing?: PartFraming,
+  ): THREE.Object3D {
     if (this.parts.has(id)) throw new Error(`Duplicate part id ${id}`);
     object.userData.partId = id;
     const meshes: THREE.Mesh[] = [];
@@ -52,6 +72,8 @@ export class PartRegistry {
       meshes,
       display: 'solid',
       custom,
+      frame: framing?.frame?.clone(),
+      viewDir: framing?.viewDir?.clone(),
     });
     return object;
   }
@@ -120,5 +142,20 @@ export class PartRegistry {
     const p = this.parts.get(id);
     if (p) box.setFromObject(p.object, true);
     return box;
+  }
+
+  /** What `Stage.frameParts` frames for a part: its `frame`, moved with its explode, or its whole box (`bounds`). */
+  frameBounds(id: string): THREE.Box3 {
+    const p = this.parts.get(id);
+    if (!p?.frame) return this.bounds(id);
+    for (const other of this.parts.values()) {
+      if (other !== p && (other.display === 'hidden' || other.display === 'wire')) return this.bounds(id);
+    }
+    const moved = p.object.position.clone().sub(p.base);
+    if (p.object.parent) {
+      p.object.parent.updateWorldMatrix(true, false);
+      moved.applyMatrix3(new THREE.Matrix3().setFromMatrix4(p.object.parent.matrixWorld));
+    }
+    return p.frame.clone().translate(moved);
   }
 }
