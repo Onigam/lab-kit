@@ -33,19 +33,33 @@ export function append(el: Element, children: Child[]): void {
 }
 
 /**
+ * The pieces of a text with **bold** markers. A star may stand inside the bold, as the labs' mark of an estimate does (`**1,44 kW*.**`, `**54 Wh***`):
+ * a bold ends at the first pair of stars that no third star follows. A marker with no partner stays as text.
+ */
+export function boldParts(text: string): { text: string; bold: boolean }[] {
+  return text
+    .split(/(\*\*[\s\S]+?\*\*(?!\*))/g)
+    .filter((p) => p)
+    .map((p) =>
+      p.length > 4 && p.startsWith('**') && p.endsWith('**')
+        ? { text: p.slice(2, -2), bold: true }
+        : { text: p, bold: false },
+    );
+}
+
+/**
  * Render trusted bilingual content that may contain **bold** markers.
  * Text is inserted with text nodes only (no innerHTML).
  */
 export function rich(text: string): DocumentFragment {
   const frag = document.createDocumentFragment();
-  const parts = text.split(/(\*\*[^*]+\*\*)/g);
-  for (const p of parts) {
-    if (p.startsWith('**') && p.endsWith('**')) {
+  for (const p of boldParts(text)) {
+    if (p.bold) {
       const b = document.createElement('strong');
-      b.textContent = p.slice(2, -2);
+      b.textContent = p.text;
       frag.append(b);
-    } else if (p) {
-      frag.append(document.createTextNode(p));
+    } else {
+      frag.append(document.createTextNode(p.text));
     }
   }
   return frag;

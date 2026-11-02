@@ -1,9 +1,10 @@
 import * as THREE from 'three';
 import type { PartInfo } from '../../content/types';
 import { sheetsForPart } from '../../drawings/types';
-import { t, tr, type CommonKey } from '../../i18n';
+import { getLang, t, tr, type CommonKey } from '../../i18n';
 import type { AppContext } from '../context';
 import { fill, h, icon, ICONS, paragraphs, rich } from '../dom';
+import { envelopeText } from '../envelope';
 import { listenRow } from '../narration-ui';
 
 // Explore mode: part sheet (Learn-Arduino-like tabs) or scene overview when nothing is selected.
@@ -32,10 +33,7 @@ function chips(info: PartInfo): HTMLElement {
 function envelope(ctx: AppContext, id: string): string | null {
   const box = ctx.stage.active.registry.bounds(id);
   if (box.isEmpty()) return null;
-  const s = box.getSize(new THREE.Vector3());
-  const big = s.x >= 1 || s.y >= 1 || s.z >= 1;
-  const f = (v: number) => (big ? v.toFixed(2) : String(Math.round(v * 1000)));
-  return `${f(s.x)} × ${f(s.y)} × ${f(s.z)} ${big ? 'm' : 'mm'}`;
+  return envelopeText(box.getSize(new THREE.Vector3()), getLang(), ctx.def.envelopeMark);
 }
 
 function tabBody(ctx: AppContext, info: PartInfo): HTMLElement {

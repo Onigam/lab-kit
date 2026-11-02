@@ -128,6 +128,10 @@ export interface LabDefinition<S extends LabSim = LabSim> {
   about: (ctx: AppContext<S>) => HTMLElement[];
   /** YouTube video the part sheets link into with timestamps. */
   video?: { id: string };
+  /**
+   * A mark after the part sheet's « Encombrement », which is measured on the 3D model: `'*'` in a lab whose figures carry their tag (default: none).
+   */
+  envelopeMark?: string;
   /** Extra buttons on a part sheet (for example a "test" button). */
   partActions?: (ctx: AppContext<S>, info: PartInfo) => HTMLElement[];
   /** Parts that open a detailed world: partId -> world and button label. */
