@@ -247,7 +247,9 @@ export class Drawing {
     // projection symbol (first angle, European)
     const sx = x0 - 22;
     const sy = y0 + bh - 12;
-    p.text([sx, sy - 4], { fr: 'Projection européenne', en: 'First-angle projection' }, { size: 1.6, color: INK_2 });
+    // on two lines: on one it ran past the block's edge and into the disclaimer inside the block
+    p.text([sx, sy - 6.6], { fr: 'Projection', en: 'First-angle' }, { size: 1.6, color: INK_2 });
+    p.text([sx, sy - 4], { fr: 'européenne', en: 'projection' }, { size: 1.6, color: INK_2 });
     p.circle([sx + 13, sy + 4], 2.5, { w: W.thin });
     p.circle([sx + 13, sy + 4], 1, { w: W.thin });
     p.polyline(
