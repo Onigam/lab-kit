@@ -940,6 +940,12 @@ a:hover {
   border-bottom-color: var(--accent);
 }
 
+/* « Aperçu, Caractéristiques, Entretien, Conception » keep to one line in the default panel: « Conception » wrapped alone (gravity 21) */
+:lang(fr) .tabs:has(.tab:nth-child(4)) .tab {
+  padding-inline: 5px;
+  letter-spacing: 0;
+}
+
 .tab-body p {
   margin: 0 0 12px;
 }
@@ -2222,6 +2228,21 @@ body.panel-closed .panel {
   display: none;
 }
 
+/* the eight tools of a part selected, in French, keep to one row beside the default panel: at 1280 and from 1316 px, where one of them
+   wrapped alone (sand D38, gravity D31). From 1461 px there is room as they are. Narrower, or with the panel dragged wider, they take two rows. */
+@media (max-width: 1460px) {
+  .toolbar {
+    gap: 4px;
+  }
+  .tool {
+    padding-inline: 8px;
+    font-size: 12px;
+  }
+  .tool--range input {
+    width: 64px;
+  }
+}
+
 @media (max-width: 1100px) {
   :root {
     --panel-w: 310px;
@@ -2232,6 +2253,11 @@ body.panel-closed .panel {
   }
   .tool--range input {
     width: 80px;
+  }
+  /* a sheet's tabs still fit a 310 px panel: all of them in English, the three usual ones in French */
+  .tab {
+    padding-inline: 5px;
+    letter-spacing: 0;
   }
 }
 
