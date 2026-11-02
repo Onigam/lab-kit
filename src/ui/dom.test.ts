@@ -2,7 +2,10 @@ import { describe, expect, it } from 'vitest';
 import { boldParts } from './dom';
 import { envelopeText } from './envelope';
 
-const shown = (text: string) => boldParts(text).map((p) => (p.bold ? `<${p.text}>` : p.text)).join('');
+const shown = (text: string) =>
+  boldParts(text)
+    .map((p) => (p.bold ? `<${p.text}>` : p.text))
+    .join('');
 
 describe('**bold** in the rich text', () => {
   it('as before: bold, plain and a mark outside the bold', () => {
@@ -16,7 +19,9 @@ describe('**bold** in the rich text', () => {
   it('a star mark inside the bold leaves no raw stars (gravity D14)', () => {
     expect(shown('**Il paie 1,44 kW*.**')).toBe('<Il paie 1,44 kW*.>');
     expect(shown('**Oui, mais pour 54 Wh* seulement.**')).toBe('<Oui, mais pour 54 Wh* seulement.>');
-    expect(shown('x **sous 1,90 kW* au crochet, la machine ne rend rien** y')).toBe('x <sous 1,90 kW* au crochet, la machine ne rend rien> y');
+    expect(shown('x **sous 1,90 kW* au crochet, la machine ne rend rien** y')).toBe(
+      'x <sous 1,90 kW* au crochet, la machine ne rend rien> y',
+    );
   });
   it('a star mark at the very end of the bold stays in it', () => {
     expect(shown('**54 Wh***')).toBe('<54 Wh*>');

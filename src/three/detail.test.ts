@@ -3,13 +3,22 @@ import { describe, expect, it } from 'vitest';
 import { applyWear, contactRing, contactShadow, grassDetail, patchMaterial } from './detail';
 
 /** A material's shader edit, run on a stand-in for three's shader (only the lines the edits look for). */
-function compiled(mat: THREE.Material, fragment = '', vertex = '#include <common>\n#include <begin_vertex>\n#include <worldpos_vertex>'): { vertexShader: string; fragmentShader: string } {
-  const shader = { vertexShader: vertex, fragmentShader: fragment, uniforms: {} } as unknown as THREE.WebGLProgramParametersWithUniforms;
+function compiled(
+  mat: THREE.Material,
+  fragment = '',
+  vertex = '#include <common>\n#include <begin_vertex>\n#include <worldpos_vertex>',
+): { vertexShader: string; fragmentShader: string } {
+  const shader = {
+    vertexShader: vertex,
+    fragmentShader: fragment,
+    uniforms: {},
+  } as unknown as THREE.WebGLProgramParametersWithUniforms;
   mat.onBeforeCompile(shader, null as unknown as THREE.WebGLRenderer);
   return shader;
 }
 
-const FRAG = '#include <common>\n#include <color_fragment>\n#include <roughnessmap_fragment>\n#include <normal_fragment_maps>\n#include <map_fragment>';
+const FRAG =
+  '#include <common>\n#include <color_fragment>\n#include <roughnessmap_fragment>\n#include <normal_fragment_maps>\n#include <map_fragment>';
 
 describe('contact shadows', () => {
   const texel = (m: THREE.Mesh, i: number, j: number, N: number): number[] => {
@@ -92,7 +101,7 @@ describe('wear', () => {
 });
 
 describe('the ground', () => {
-  it("fades each octave of the bump with its own size, and tight: nothing under 2.5 pixels a cell", () => {
+  it('fades each octave of the bump with its own size, and tight: nothing under 2.5 pixels a cell', () => {
     const mat = new THREE.MeshStandardMaterial();
     grassDetail(mat);
     const frag = compiled(mat, FRAG).fragmentShader;
