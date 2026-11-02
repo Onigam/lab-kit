@@ -1,4 +1,5 @@
 export * from './core';
+export * from './detail';
 export * from './lazy';
 export * from './materials';
 export * from './registry';
