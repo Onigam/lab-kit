@@ -12,6 +12,7 @@ depends on how well the lead briefs a general-purpose agent.
 | `lab-author`     | 2–3  | `src/data/**`, `src/drawings/**`, `src/i18n/ui.ts`: sheets, guides, lessons     |
 | `lab-narrator`   | 5    | `narration/**`: the spoken guide, its checks; never spends credits              |
 | `lab-reviewer`   | 4, 6 | `docs/qa.md` only: the independent walk against `lab-quality.md`                |
+| `lab-lead`       | each | `src/lab.ts`: integrates a wave, runs the gates, commits and pushes a `building` lab |
 
 The lead (the main session) integrates `src/lab.ts`, commits, deploys, runs the paid audio generation after the owner's yes and
 talks to the owner. No agent commits or pushes.
