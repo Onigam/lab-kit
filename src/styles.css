@@ -2242,6 +2242,10 @@ body.panel-closed .panel {
   body.panel-closed .panel {
     display: flex;
   }
+  /* the panel button of a phone on its side stays pressed when it turns upright: this layout has one column, whatever it says (sand D23, gravity D20) */
+  body.panel-closed #app {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 .sizing td b {
