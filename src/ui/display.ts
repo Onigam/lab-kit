@@ -62,7 +62,8 @@ export class DisplayController {
       }
     };
 
-    this.stage.explodeTarget = guide ? 0 : ui.explode;
+    const explode = this.def.scenes.find((sc) => sc.id === mod.id)?.explode === false ? 0 : ui.explode;
+    this.stage.explodeTarget = guide ? 0 : explode;
     if (guide) {
       const step = Math.min(ui.step, guide.length - 1);
       const key = `${ui.mode}:${step}`;
@@ -104,7 +105,7 @@ export class DisplayController {
         this.stepKey = '';
         this.stage.refreshOutline();
       }
-      this.explode = damp(this.explode, ui.explode, 6, dt);
+      this.explode = damp(this.explode, explode, 6, dt);
       // the overview follows the explode slider: once it stops moving, frame the device as it is now
       if (ui.explode !== this.lastExplodeUi) {
         this.lastExplodeUi = ui.explode;

@@ -528,7 +528,7 @@ export class App<S extends LabSim = any> {
         icon(ICONS.home, 16),
         h('span', {}, t('overviewBtn')),
       ),
-      guide
+      guide || scene?.explode === false
         ? null
         : h(
             'div',

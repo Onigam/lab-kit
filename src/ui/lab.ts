@@ -44,6 +44,11 @@ export interface SceneDef {
   cutaway?: boolean;
   /** Show the slow-motion tool in this world (default: yes). */
   slowMo?: boolean;
+  /**
+   * Show the explode tool in this world (default: yes). A landscape does not come apart. With `false` the world stays assembled outside a guide, and a
+   * guide's parts still drop in along their offsets.
+   */
+  explode?: boolean;
   /** X-ray only makes sense around a selected part (landscapes). */
   xrayNeedsSelection?: boolean;
   /** Camera padding when a part is framed (default 2.4; larger = further away). */
