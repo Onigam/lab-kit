@@ -76,6 +76,14 @@ nothing. A segment is generated again only when its spoken text, the voice, the 
 manifest) or with `--force`: credits are never spent twice on the same text. The tool uses the "with timestamps" endpoint to turn
 each marker into a time and cuts the subtitles at sentence ends.
 
+**The local voice** (`--engine voicebox`, owner's decision of 2/11/2026 for the labs still to build; ElevenLabs is kept for YouTube): Qwen3-TTS
+1.7B through Voicebox on this machine, with no credit and no key. The application must be open (`http://127.0.0.1:17493`). The profile is
+`Onigam narrateur FR` or `EN` (`--profile` names another), whose reference comes from the narrator the owner created on ElevenLabs: **a profile
+cloned from a real person never reaches a lab.** Qwen gives no timings, so Whisper listens to each clip and `tools/narration/voicebox.mjs` lays its
+words on the script; the subtitles and the cues are then made the same way, and the MP3 is set to −27 LUFS, the level of the guides already made.
+It takes about 4 times the audio's length, plus Whisper. A guide stays in the voice it was made with: a change of engine stops unless `--switch-engine`
+is given.
+
 Output: `<out>/<id>.mp3` (mono, 64 kbit/s) and `<out>/manifest.json`:
 
 ```json

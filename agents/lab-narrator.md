@@ -42,8 +42,10 @@ One segment for the introduction, one per world, one per part.
 3. The exact cost, **0 credit**, with the key out of reach:
    `HOME=$(mktemp -d) node ~/Dev/lab-kit/tools/narration/generate.mjs --src narration/fr.json --out public/audio/fr --dry-run`.
 
-**You never run `generate.mjs` without `--dry-run`.** Generation spends the owner's ElevenLabs credits: the lead runs it, after
-the owner's explicit yes, a sample first (the introduction and one world), then the rest.
+**You never run `generate.mjs` without `--dry-run`.** The lead runs it. Since 2/11/2026 the labs still to build use the local voice
+(`--engine voicebox`, no credit, the Voicebox application open), and ElevenLabs is kept for YouTube; the guides already made keep their
+voice. Add `--engine voicebox` to the dry run for those labs. Never name a Voicebox profile other than `Onigam narrateur FR` or `EN`: the
+others are cloned from real people.
 
 ## Checks after generation (when the lead asks)
 

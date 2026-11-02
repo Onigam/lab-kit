@@ -5,6 +5,7 @@ import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { LOCAL_MODEL, profileOf, synthLocal } from './voicebox.mjs';
 
 const args = process.argv.slice(2);
 const opt = (name, fallback) => {
@@ -18,9 +19,12 @@ const DRY = !!opt('dry-run', false);
 const FORCE = !!opt('force', false);
 // also keep each segment's character timings (<segment>.alignment.json), so cues can be re-timed later without paying again
 const ALIGN = !!opt('alignment', false);
-if (!SRC || !OUT) {
+// --engine voicebox: the local voice, with no credit (voicebox.mjs); the default stays ElevenLabs
+const ENGINE = opt('engine', 'elevenlabs');
+const LOCAL = ENGINE === 'voicebox';
+if (!SRC || !OUT || !['elevenlabs', 'voicebox'].includes(ENGINE)) {
   console.error(
-    'Usage: node generate.mjs --src narration/fr.json --out public/audio/fr [--only id,id] [--dry-run] [--force] [--alignment]',
+    'Usage: node generate.mjs --src narration/fr.json --out public/audio/fr [--only id,id] [--dry-run] [--force] [--alignment] [--engine elevenlabs|voicebox] [--profile name] [--switch-engine]',
   );
   process.exit(2);
 }
@@ -34,8 +38,7 @@ if (fs.existsSync(envFile)) {
   }
 }
 const KEY = process.env.ELEVENLABS_API_KEY;
-const VOICE = process.env.ELEVENLABS_VOICE_ID;
-const MODEL = process.env.ELEVENLABS_MODEL ?? 'eleven_v4';
+const MODEL = LOCAL ? LOCAL_MODEL : (process.env.ELEVENLABS_MODEL ?? 'eleven_v4');
 
 const ACTIONS = {
   scene: (a) => ({ scene: need(a) }),
@@ -130,6 +133,13 @@ const settings = script.settings ?? {};
 const manifestPath = path.join(OUT, 'manifest.json');
 const previous = fs.existsSync(manifestPath) ? JSON.parse(fs.readFileSync(manifestPath, 'utf8')) : { segments: [] };
 const known = new Map(previous.segments.map((s) => [s.id, s]));
+// the local voice is named by its Voicebox profile, never a profile cloned from a real person
+const VOICE = LOCAL ? opt('profile', `Onigam narrateur ${script.lang.toUpperCase()}`) : process.env.ELEVENLABS_VOICE_ID;
+// a guide stays in the voice it was made with: a change of engine would redo every segment, and could spend credits
+if (previous.segments.length && (previous.model === LOCAL_MODEL) !== LOCAL && !opt('switch-engine', false)) {
+  console.error(`${manifestPath} is in ${previous.model}, not ${MODEL}: nothing done. --switch-engine redoes the whole guide.`);
+  process.exit(1);
+}
 
 const seen = new Set();
 const plan = script.segments.map((seg) => {
@@ -167,14 +177,14 @@ console.log(
   `${plan.length} segments, ${sum(plan)} characters in the script (model ${MODEL}, language ${script.lang}).`,
 );
 console.log(
-  `${selected.length - todo.length} up to date, ${todo.length} to generate: ${sum(todo)} characters (about ${sum(todo)} credits).`,
+  `${selected.length - todo.length} up to date, ${todo.length} to generate: ${sum(todo)} characters (${LOCAL ? 'local voice, no credit' : `about ${sum(todo)} credits`}).`,
 );
 if (DRY) {
   for (const p of todo)
     console.log(`  ${p.seg.id.padEnd(34)} ${String(p.spoken.length).padStart(5)} chars, ${p.cues.length} cues`);
   process.exit(0);
 }
-if (todo.length && (!KEY || !VOICE)) {
+if (!LOCAL && todo.length && (!KEY || !VOICE)) {
   console.error(
     'ELEVENLABS_API_KEY and ELEVENLABS_VOICE_ID are needed (environment or ~/.config/lab-narration/elevenlabs.env).',
   );
@@ -204,15 +214,17 @@ async function synth(spoken) {
 }
 
 const results = new Map();
+const profile = LOCAL && todo.length ? await profileOf(VOICE) : null;
 for (const p of todo) {
   process.stdout.write(`  ${p.seg.id} (${p.spoken.length} chars) … `);
-  const d = await synth(p.spoken);
+  const d = LOCAL ? await synthLocal(p.spoken, script.lang, profile) : await synth(p.spoken);
   const a = d.alignment;
+  if (LOCAL && d.matched < 0.7 * d.total) console.warn(`\n  note: only ${d.matched} of ${d.total} words placed by Whisper: check this clip`);
   if (!a || a.characters.length !== p.spoken.length) {
     // the service may normalise the text: align by position as far as it goes
     console.warn(`\n  note: ${a ? a.characters.length : 0} aligned characters for ${p.spoken.length}`);
   }
-  fs.writeFileSync(path.join(OUT, p.file), Buffer.from(d.audio_base64, 'base64'));
+  fs.writeFileSync(path.join(OUT, p.file), LOCAL ? d.audio : Buffer.from(d.audio_base64, 'base64'));
   if (ALIGN)
     fs.writeFileSync(
       path.join(OUT, p.file.replace(/\.mp3$/, '.alignment.json')),

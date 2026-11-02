@@ -26,6 +26,52 @@ const test = (name, fn) => {
   }
 };
 
+// the local voice: the words Whisper heard, laid on the script (voicebox.mjs)
+const { alignWords } = await import('./voicebox.mjs');
+test('alignWords: every character gets a rising time, ending at the audio duration', () => {
+  const spoken = 'Bonjour, l\u2019eau tombe de soixante-seize m\u00e8tres.';
+  const words = [
+    { word: ' Bonjour,', start: 0.1, end: 0.6 },
+    { word: " l'eau", start: 0.7, end: 1.0 },
+    { word: ' tombe', start: 1.0, end: 1.4 },
+    { word: ' de', start: 1.4, end: 1.5 },
+    { word: ' 76', start: 1.5, end: 2.2 },
+    { word: ' m\u00e8tres.', start: 2.2, end: 2.8 },
+  ];
+  const { alignment: a, matched, words: total } = alignWords(spoken, words, 3);
+  assert.equal(a.characters.length, spoken.length);
+  assert.equal(a.character_start_times_seconds.length, spoken.length);
+  assert.equal(a.character_end_times_seconds.at(-1), 3);
+  for (let i = 1; i < spoken.length; i++) assert.ok(a.character_start_times_seconds[i] >= a.character_start_times_seconds[i - 1]);
+  assert.equal(total, 8);
+  assert.equal(matched, 6);
+  // a word Whisper heard in digits shares the time between its neighbours
+  const at = spoken.indexOf('soixante');
+  assert.ok(Math.abs(a.character_start_times_seconds[at] - 1.5) < 0.05);
+  assert.ok(Math.abs(a.character_start_times_seconds[spoken.indexOf('m\u00e8tres')] - 2.2) < 0.05);
+});
+test('alignWords: a word heard slightly differently still anchors, a dropped one does not break the order', () => {
+  const spoken = 'La prise Coanda filtre encore bien.';
+  const words = [
+    { word: ' La', start: 0, end: 0.2 },
+    { word: ' prise', start: 0.2, end: 0.6 },
+    { word: ' Coranda', start: 0.6, end: 1.2 },
+    { word: ' filtre', start: 1.2, end: 1.6 },
+    { word: ' bien.', start: 1.9, end: 2.2 },
+  ];
+  const { alignment: a, matched } = alignWords(spoken, words, 2.3);
+  assert.equal(matched, 5);
+  assert.ok(Math.abs(a.character_start_times_seconds[spoken.indexOf('Coanda')] - 0.6) < 0.01);
+  assert.ok(a.character_start_times_seconds[spoken.indexOf('encore')] >= 1.6);
+  assert.ok(a.character_start_times_seconds[spoken.indexOf('bien')] <= 1.91);
+});
+test('alignWords: nothing heard still gives a usable, even timing', () => {
+  const { alignment: a, matched } = alignWords('Une phrase.', [], 2);
+  assert.equal(matched, 0);
+  assert.equal(a.character_start_times_seconds[0], 0);
+  assert.equal(a.character_end_times_seconds.at(-1), 2);
+});
+
 const cues = [
   { t: 0, do: { scene: 'site' } },
   { t: 2, do: { frame: ['penstock'] } },
