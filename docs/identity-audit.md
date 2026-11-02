@@ -1,8 +1,8 @@
 # Identity audit: the labs and labs.onigam.io
 
-**Status: proposal, waiting for the owner.** Nothing is released. The mock-up is on the local branch `identity` of this repo, tried on
-Piggott Lab only. Sheet: `~/.cache/lab-review/identity/sheet.jpg`. The request and the order of work are in
-`energy-labs/PLANNING.md` §4.5.
+**Status: approved by the owner on 2 November 2026** (« les après clair et sombre sont très bien et me paraissent cohérents avec le site labs.onigam.io »). It went into kit 0.6.0, whose
+[migration note](kit-0.6.0.md) replaces §4 below for a lab. §6 is settled: dark mode stays, the bar reads « Onigam Labs / lab's name », the common favicon replaces each lab's, fonts are self-hosted. This page stays as the record of what was
+measured then. Sheet: `~/.cache/lab-review/identity/sheet.jpg`. The request and the order of work are in `energy-labs/PLANNING.md` §4.5.
 
 The rule the audit applies: **the frame stays common and locked in the kit (same layout, same modes, same tools); its identity now follows
 the showcase.** The showcase's values are in `onigam-labs/src/styles/base.css`, its mark in `src/render/icons.ts`, its favicon in
@@ -26,7 +26,7 @@ the showcase.** The showcase's values are in `onigam-labs/src/styles/base.css`, 
 | Dark mode | yes, system setting then a toggle | none | **Move, owner's call** (§6) | same palette, same key name, a toggle in the bar |
 | Colours written in the CSS | none | about 40 lines with a literal (`rgba(251,248,242…)`, `#e7decb`, `#6d1e18`…) | **Move** to tokens | `--glass`, `--warn-*`, `--alarm-ink`, `--ok-soft`, `--formula*`; only the token blocks hold literals |
 | Typefaces | Space Grotesk, JetBrains Mono | the same | Same | |
-| Font files | self-hosted | Google Fonts, from each lab's `index.html` | **Owner's call** (§6) | unchanged |
+| Font files | self-hosted | Google Fonts, from each lab's `index.html` | **Moved** (`src/fonts/README.md`) | unchanged in the mock-up |
 | Body size | 17 px | 15 px | **Stay**: a tool's density, the layout depends on it | |
 | Lab's name in the bar | « Onigam Labs » 19 px, weight 600, mixed case | 22 px, weight 700, capitals, spaced 0.18 em | **Move** | 18 px, 600, mixed case, wraps to two lines |
 | Tagline | none | 11 px capitals, spaced 0.22 em | **Move** | 11.5 px, plain |

@@ -19,7 +19,7 @@ the same advance widths in `latin` and `greek` as Google's files of 2 November 2
 request. Left out, because no lab's French or English uses them: Cyrillic, Vietnamese and the rest of Latin Extended. What these subsets never had (`→`, `≈`, `≤`,
 `₂`, Greek in Space Grotesk…) still falls back to the system's font, as it did.
 
-JetBrains Mono's axis is cut to 400 to 600 because the frame asks for no other weight: 40,404 B become 29,988 B. At 400 and 600 no glyph changed its width and no point
+JetBrains Mono's axis is cut to 400 to 600 because the frame asks for no other weight: its `latin` file goes from 40.4 KB to 30.2 KB. At 400 and 600 no glyph changed its width and no point
 moved by a whole unit of the 1,000 to the em. Space Grotesk's axis is left whole: cutting it saves 200 B.
 
 Made with fontTools:

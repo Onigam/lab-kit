@@ -11,13 +11,13 @@ looks and behaves the same.
 | Subpath                      | Content                                                                                                                                                                     |
 | ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `@onigam/lab-kit/ui`         | `mountLab(def, …)`, the `LabDefinition` contract, the application shell (top bar, mode rail, panels, toolbar, bottom strip), shared widgets and charts, the drawings viewer |
-| `@onigam/lab-kit/three`      | `Stage` (one renderer for all 3D worlds, labels, outline, camera flights), `PartRegistry` (explode, isolate, x-ray), materials and mesh helpers                             |
+| `@onigam/lab-kit/three`      | `Stage` (one renderer for all 3D worlds, labels, outline, camera flights), `PartRegistry` (explode, isolate, x-ray), materials and mesh helpers, near detail (`applyWear`, `grassDetail`, `contactShadow`) |
 | `@onigam/lab-kit/drawings`   | A3 SVG drawing kit (views, dimensions, hatching, title block) and the `DrawingSheet` type                                                                                   |
 | `@onigam/lab-kit/i18n`       | FR/EN language state, `l(fr, en)`, the registry of interface strings (`registerStrings`, `strL`)                                                                            |
 | `@onigam/lab-kit/content`    | Types of the content a lab writes: parts, guide steps, lessons                                                                                                              |
 | `@onigam/lab-kit/narration`  | The spoken guide without DOM: manifest types and reading, cue scheduling and replay, captions, `validateManifest` for a lab's own test                                      |
-| `@onigam/lab-kit/sim/*`      | Small physics helpers: `hydraulic` (pipe friction, nozzles, valves), `electric` (LiFePO4 curve, cables)                                                                     |
-| `@onigam/lab-kit/styles.css` | The graphic frame (paper grid, copper accent, Space Grotesk / JetBrains Mono)                                                                                               |
+| `@onigam/lab-kit/sim/*`      | Small physics helpers: `hydraulic` (pipe friction, nozzles, valves), `electric` (LiFePO4 curve, cables), [`thermal`](docs/sim-thermal.md) (RC network, grids, exchange, draft, radiation, a false-colour ramp) |
+| `@onigam/lab-kit/styles.css` | The graphic frame in the showcase's identity, light and dark, and the self-hosted fonts (Space Grotesk, JetBrains Mono) in `dist/fonts`                                    |
 
 The frame is the same for every lab and is **not** meant to be restyled: a lab ships no layout CSS, only content.
 
@@ -26,7 +26,7 @@ The frame is the same for every lab and is **not** meant to be restyled: a lab s
 ```jsonc
 // package.json — pinned to a release tag; three.js is a peer dependency
 "dependencies": {
-  "@onigam/lab-kit": "git+https://github.com/Onigam/lab-kit.git#v0.1.0",
+  "@onigam/lab-kit": "git+https://github.com/Onigam/lab-kit.git#v0.6.0",
   "three": "^0.186.1"
 }
 ```
@@ -76,6 +76,8 @@ come before the text of the overview, so the first button is not below the fold 
   press that moves 3 px or less is still a click. `Stage.setPivot(point | null)` sets the point a drag on nothing turns around
   (any framing, such as `frameParts` when a part is selected from the panel, puts it back on the target of the camera).
 - **Guides**: changing the world by hand during a guide goes to the nearest step that plays in that world.
+- **Options of a world and a part** (all optional): `SceneModule.near` and `far`; `SceneModule.declutter`, names that fold into their dots when every label is on;
+  `SceneDef.explode: false`, no explode tool; `PartRegistry.add(id, object, explode, custom, { frame, viewDir })`, what `frameParts` frames for a part and from where.
 - **No WebGL**: `mountLab` shows a message (French and English) and returns `null`.
 - **Contrast**: the text greys and accents reach 4.5:1 (`--ink-3`, `--water-ink`, `--copper-ink`, `--leaf-ink`); the fills
   keep their hues (`--ink-4` is the old `--ink-3`).
@@ -149,7 +151,7 @@ added when a lab really needs one).
 ```bash
 npm install
 npm run typecheck
-npm test           # the self-tests of the pure logic (narration, look)
+npm test           # the self-tests of the pure logic (narration, look) and vitest (sim/thermal, detail, registry, rich text)
 npm run build      # dist/ (JavaScript, type declarations, styles.css)
 npm run release    # from a clean main: builds, commits dist/ on a detached HEAD, tags vX.Y.Z and pushes the tag
 ```
@@ -178,8 +180,8 @@ lab ait le même aspect et le même comportement.
 - **`i18n`** : langue FR/EN, `l(fr, en)`, registre des textes d'interface. La typographie française (espaces insécables avant « : » et « » », fine avant « ; ! ? », nombres et unités) est appliquée à la résolution des textes, sans toucher aux chaînes sources.
 - **`content`** : types du contenu qu'écrit un lab (pièces, étapes de guide, leçons). Un guide se joue dans un monde par défaut ; une étape peut en nommer un autre (`GuideStep.scene`) et
   l'application suit l'étape dans ce monde.
-- **`sim/*`** : petites fonctions de physique (hydraulique, électrique).
-- **`styles.css`** : le cadre graphique, identique pour tous les labs, que l'on ne restyle pas.
+- **`sim/*`** : petites fonctions de physique (hydraulique, électrique, [thermique](docs/sim-thermal.md)).
+- **`styles.css`** : le cadre graphique, identique pour tous les labs, que l'on ne restyle pas, avec ses polices auto-hébergées.
 
 Le cadre se débrouille seul : sur téléphone le rail des modes tient sur une ligne, la barre d'outils se pose sur le bord du
 volet du bas (qui se tire du doigt par sa poignée) et défile avec un dégradé là où elle continue ; le sujet 3D est cadré
@@ -209,6 +211,6 @@ fichiers statiques : l'application n'appelle aucune API, rien ne démarre seul, 
 Format du script, marqueurs, manifeste et comportement : [`docs/narration.md`](docs/narration.md) ; test côté lab :
 `readManifest` / `validateManifest` (`@onigam/lab-kit/narration`).
 
-Un lab s'installe par dépendance Git épinglée sur un tag (`git+https://github.com/Onigam/lab-kit.git#v0.1.0`), avec
+Un lab s'installe par dépendance Git épinglée sur un tag (`git+https://github.com/Onigam/lab-kit.git#v0.6.0`), avec
 `three` en dépendance « pair ». `main` ne contient jamais `dist/` : `npm run release` construit `dist/`, le commit sur un
 HEAD détaché sous le tag `vX.Y.Z` et pousse ce tag. Pas encore géré : plusieurs versions d'une machine dans un même lab.

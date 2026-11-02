@@ -2,6 +2,40 @@
 
 Releases of `@onigam/lab-kit`. A lab moves to a release with `npm run kit:bump` (or by changing the tag in its `package.json`).
 
+## 0.6.0 (2026-11-02): the showcase's identity, self-hosted fonts, sim/thermal
+
+The owner's request: more coherence with labs.onigam.io (icons, colours, buttons, links back to it). The approved mock-up is the first item; the rest
+goes with it. What a lab must do is in [`docs/kit-0.6.0.md`](docs/kit-0.6.0.md). The 3D worlds, the modes and what films use do not change; on the A3 sheets, only one caption does.
+
+- **The frame in the showcase's identity** (`docs/identity-audit.md`). Palette, lines, grid paper, shadows, pill buttons with a copper primary, chips with a coloured dot,
+  links, focus, icons and the mark. Dark mode, by the system's setting and a toggle in the bar, saved under the showcase's key. The bar reads « Onigam Labs / lab's name »; a long name
+  wraps to two lines instead of being cut. The common favicon, set at mount. `labTitle()` takes a name in capitals to mixed case.
+- **The way back.** The mark and « Onigam Labs », a « Tous les labs » entry in the rail, a block at the end of the Sources panel, with the privacy page.
+- **Self-hosted fonts.** Space Grotesk and JetBrains Mono ship in `dist/fonts` (`src/fonts/README.md`): the same versions, characters and widths as Google's, about 53 KB on a first visit, under
+  the OFL, the notices in each file. `styles.css` declares them, so a lab that drops its three `<link>` lines no longer contacts Google. On Piggott's production build every request of a first visit went to the
+  lab's own address.
+- **`@onigam/lab-kit/sim/thermal`** (`docs/sim-thermal.md`). The mass heater's copy, a superset of the sand battery's, byte for byte but for comments, with its 42 tests. `tubeFlow`, the one function
+  whose code differs between the two, gives the same results on 288 points. The solar heater's third copy reads `Math.abs(mdot)`: reported, not settled.
+- **`detail.ts` in `@onigam/lab-kit/three`.** `applyWear`, `grassDetail`, `contactShadow`, `contactRing`, `patchMaterial`, with the fixes of the labs' reviews (each octave of the bump fades on its own, a tighter fade, a
+  tenth of roughness on metals, unfogged shadows with a polygon offset and a rise over two fifths of the falloff). The same bytes and shader text as the Pelton, Piggott, Mill, gravity, mass and sand copies. New and
+  optional: `fade` on a contact shadow, for a world with fog (Mill's D12). A lab keeps its picture until it imports them.
+- **Options for a world and a part**, all optional, with today's behaviour as default.
+  - `SceneModule.near`, `far`: the camera's planes in this world.
+  - `PartRegistry.add(id, object, explode, custom, { frame, viewDir })`: what `frameParts` frames for this part and where from. `frameAll`, the sheet's envelope and a part shown alone keep its whole box.
+  - `SceneDef.explode: false`: no explode tool in this world; a guide's parts still drop in.
+  - `SceneModule.declutter`: with every label on, a name with no room folds into its dot until it is pointed at or selected. On Piggott's turbine, 10 overlaps at 1280 and 14 at 390 become none.
+  - `LabDefinition.envelopeMark`: a mark after « Encombrement », such as `*`.
+  - Chart markers take `line`, `dot` and `align`, and `label` may go. A marker that gives none of them draws as before, the `y: NaN` trick included.
+- **Fixes every lab gets.**
+  - `rich()` keeps a star inside the bold: `**Il paie 1,44 kW*.**` no longer shows raw stars (gravity D14).
+  - « Encombrement » has its decimal comma in French.
+  - The sheets' « Projection européenne » takes two lines and no longer runs into the title block's disclaimer.
+  - A phone turned upright with the panel collapsed no longer leaves the 3D 78 px wide (sand D23, gravity D20).
+  - The first-visit invitation gives way when a part is selected, the mode changes or the panel moves, for that visit (sand 22).
+  - Up to 1460 px the tools are a little denser: the eight of a part selected, in French, fit one row at 1280 and from 1316 px (950 → 814 px). Below about 1270 px they still take two rows.
+  - A French sheet with four tabs keeps to one line from 1101 px; up to 1100 px, four tabs in French still take two.
+- **Tests.** `npm test` also runs vitest, for the pure modules (64 tests). `dist/` holds no test.
+
 ## 0.5.1 (2026-11-01): fixes from the ram pump's reviews
 
 - **Films' ambient occlusion respects the section** (film v5, A1). three's GTAO drew the scene again with one normal material,
