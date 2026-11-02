@@ -212,6 +212,14 @@ export class App<S extends LabSim = any> {
         return;
       }
     }
+    if (
+      (s.selected && s.selected !== prev.selected) ||
+      s.mode !== prev.mode ||
+      s.panelOpen !== prev.panelOpen ||
+      s.sheet !== prev.sheet
+    ) {
+      this.narration?.yieldInvite();
+    }
     if (s.scene !== prev.scene) {
       stage.setActive(s.scene);
       this.warmLater(s.scene);

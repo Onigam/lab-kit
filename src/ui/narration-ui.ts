@@ -31,6 +31,7 @@ export class NarrationPlayer {
   /** The first-visit bubble that invites to the introduction (put it right after the speaker, in the same anchor). */
   readonly invite: HTMLElement;
   private readonly inviteText: HTMLElement;
+  private inviteYielded = false;
 
   private playBtn: HTMLButtonElement;
   private titleEl = h('b', { class: 'narr__title' });
@@ -155,6 +156,15 @@ export class NarrationPlayer {
     this.render();
   }
 
+  /**
+   * The visitor has gone on without it (a part, a mode, the panel): the bubble stops covering what it sits on, for this visit. It is not a « no »: the
+   * speaker keeps its ring, and the next visit invites again, until the guide is used or the cross pressed.
+   */
+  yieldInvite(): void {
+    this.inviteYielded = true;
+    this.invite.hidden = true;
+  }
+
   /** On a narrow screen the bubble would leave the view on the left: push it back to the right, the arrow follows. */
   private keepInviteInView(): void {
     if (this.invite.hidden) return;
@@ -207,7 +217,7 @@ export class NarrationPlayer {
     // first visit only: the bubble and the soft pulse that invite to the introduction, until the visitor has used or
     // dismissed them (never while something is on air)
     const inviting = this.speakerShown && !seg && !e.invited;
-    this.invite.hidden = !inviting;
+    this.invite.hidden = !inviting || this.inviteYielded;
     this.speaker.classList.toggle('is-inviting', inviting);
     if (inviting) {
       const duration = e.segment('intro')?.duration ?? 0;
