@@ -16,7 +16,8 @@ import path from 'node:path';
 
 const deps = process.env.LAB_REVIEW_DEPS ?? path.join(os.homedir(), '.cache/lab-review');
 const puppeteer = createRequire(path.join(deps, 'index.js'))('puppeteer-core');
-const CHROME = process.env.CHROME ?? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
+// Chrome for Testing, not /Applications/Google Chrome: headless copies of that app stop the owner's own Chrome from opening.
+const CHROME = process.env.CHROME ?? `${process.env.HOME}/.cache/puppeteer/chrome/mac_arm-154.0.8037.57/chrome-mac-arm64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing`;
 const { URL: BASE, OUT } = process.env;
 if (!BASE || !OUT) throw new Error('Set URL (the lab in dev mode) and OUT (where the screenshots go).');
 const WIDTH = Number(process.env.WIDTH ?? 1280);
