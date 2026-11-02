@@ -46,6 +46,23 @@ export interface SeriesDef {
   bold?: boolean;
 }
 
+/**
+ * A mark on a chart at abscissa `x`. As before when only `x`, `y`, `label` and `color` are given: with a `y`, a dot with its label; without, a vertical line
+ * with its label at the top. The rest says what to draw when that is not it: a label alone, a line alone, a side.
+ */
+export interface ChartMarker {
+  x: number;
+  y?: number;
+  label?: string;
+  color?: string;
+  /** Draw the vertical line (default: when there is no `y`). */
+  line?: boolean;
+  /** Draw the dot at `y` (default: when there is a `y`). */
+  dot?: boolean;
+  /** Which side of the point the label is on: `start`, after it, `end`, before it (default: `end` past 70 % of the width). */
+  align?: 'start' | 'end';
+}
+
 interface ChartOpts {
   height: number;
   series: SeriesDef[];
@@ -56,7 +73,7 @@ interface ChartOpts {
   /** Show a legend row (always when ≥ 2 series). */
   legend?: boolean;
   /** Vertical reference lines and points drawn over the series. */
-  markers?: () => { x: number; y?: number; label: string; color?: string }[];
+  markers?: () => ChartMarker[];
 }
 
 function setupCanvas(canvas: HTMLCanvasElement, w: number, hgt: number): CanvasRenderingContext2D {
@@ -214,11 +231,14 @@ export class LineChart {
     for (const m of this.opts.markers?.() ?? []) {
       if (m.x < x0 || m.x > x1) continue;
       const mx = X(m.x);
+      const hasY = m.y !== undefined && Number.isFinite(m.y);
+      const before = m.align ? m.align === 'end' : mx > w * 0.7;
+      const label = m.label ?? '';
       ctx.save();
       ctx.setLineDash([4, 3]);
       ctx.strokeStyle = MARK;
       ctx.lineWidth = 1;
-      if (m.y === undefined) {
+      if (m.line ?? m.y === undefined) {
         ctx.beginPath();
         ctx.moveTo(mx, pad.t);
         ctx.lineTo(mx, pad.t + ph);
@@ -227,22 +247,24 @@ export class LineChart {
       ctx.restore();
       ctx.font = '10px "JetBrains Mono", ui-monospace, monospace';
       ctx.fillStyle = INK_2;
-      ctx.textAlign = mx > w * 0.7 ? 'right' : 'left';
+      ctx.textAlign = before ? 'right' : 'left';
       ctx.textBaseline = 'top';
-      if (m.y !== undefined && Number.isFinite(m.y)) {
-        const my = Y(Math.min(m.y, yMax));
-        ctx.fillStyle = SURFACE;
-        ctx.beginPath();
-        ctx.arc(mx, my, 6.5, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.fillStyle = tone(m.color ?? SERIES_COLORS.dump);
-        ctx.beginPath();
-        ctx.arc(mx, my, 4.5, 0, Math.PI * 2);
-        ctx.fill();
+      if (hasY) {
+        const my = Y(Math.min(m.y!, yMax));
+        if (m.dot ?? true) {
+          ctx.fillStyle = SURFACE;
+          ctx.beginPath();
+          ctx.arc(mx, my, 6.5, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = tone(m.color ?? SERIES_COLORS.dump);
+          ctx.beginPath();
+          ctx.arc(mx, my, 4.5, 0, Math.PI * 2);
+          ctx.fill();
+        }
         ctx.fillStyle = INK;
-        ctx.fillText(m.label, mx + (mx > w * 0.7 ? -8 : 8), my + 5);
+        ctx.fillText(label, mx + (before ? -8 : 8), my + 5);
       } else {
-        ctx.fillText(m.label, mx + (mx > w * 0.7 ? -4 : 4), pad.t + 2);
+        ctx.fillText(label, mx + (before ? -4 : 4), pad.t + 2);
       }
     }
 
